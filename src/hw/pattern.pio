@@ -1,0 +1,21 @@
+; Pattern player: plays a list of (level, duration) segments from the TX FIFO.
+;
+; Each 32-bit word is one segment, fed continuously by DMA
+; (see pattern_output.cpp):
+;   bit 0      pin level
+;   bits 31..1 loop count
+; The OSR shifts right with autopull at 32 bits, so the level comes out first.
+;
+; Timing per segment: `out pins` (1) + `out x` (1) + `jmp x--` executed
+; count+1 times = count + 3 cycles. The pin changes on the first instruction
+; of each segment. As long as DMA keeps the FIFO from running empty, autopull
+; never stalls and segments are cycle exact.
+
+.program pattern
+
+.wrap_target
+    out pins, 1         ; set the pin level for this segment
+    out x, 31           ; load the duration
+delay:
+    jmp x-- delay
+.wrap

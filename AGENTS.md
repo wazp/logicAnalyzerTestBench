@@ -1,0 +1,59 @@
+# AGENTS.md
+
+Conventions for anyone (human or AI agent) working on this repository. See [README.md](README.md) for what the project does and how to build it.
+
+## Target
+
+- Board: **Raspberry Pi Pico 2 W** (RP2350A, ARM Cortex-M33). `PICO_BOARD=pico2_w`, `PICO_PLATFORM=rp2350-arm-s`. Do not add RP2040 (Pico, Pico W) support paths.
+- SDK: official Raspberry Pi Pico SDK 2.3.1 via `PICO_SDK_PATH`, CMake + Ninja.
+- Language: C++17 for firmware and tests, PIO assembly for `.pio` files.
+
+## Architecture rules
+
+1. **Pure core, thin hardware layer.** Any math (cycle counts, dividers, encodings, protocol bit streams) goes in `src/core/` with no Pico SDK includes, and gets host unit tests in `tests/`. Hardware modules in `src/hw/` (and later `src/protocols/`) call the core and program registers. They should contain as little logic as possible.
+2. **No blocking delays for signals.** Signals are produced by PIO, PWM, DMA or hardware timers. The CPU main loop only runs the console. `sleep_ms` is acceptable in console code, never in signal generation.
+3. **One place for pins.** `src/board_pins.h` owns every GPIO assignment. Changing a pin means updating `board_pins.h`, the pinout table in README.md, and the `bi_decl` lines in `main.cpp`.
+4. **One place for defaults.** `src/signal_config.h` owns frequencies, duty cycles, patterns and PIO state machine allocation. Keep it SDK-free so tests can check it.
+5. **Never use** GP23, GP24, GP25, GP29 (CYW43 wireless chip). Keep GP0/GP1 free of UART stdio (stdio is USB only).
+6. **Peripheral conflicts:** PWM slices are shared by GPIO pairs (slice = (gpio / 2) % 8). Two signals with different frequencies must not share a slice. PIO state machines are claimed explicitly with `pio_sm_claim` so a double allocation panics at boot. `tests/test_config.cpp` checks pins and state machines for duplicates; extend it when adding outputs.
+7. **Validate and report.** Every output computes its actual achieved timing, panics with a clear message on invalid config, and adds a row to the status table (`status_add`).
+8. **Simple over clever.** Plain structs and free functions. Add an abstraction only when a second real user needs it.
+
+## Adding a new mode (UART, SPI, I2C, C64 bus)
+
+1. Put any bit stream or timing math in `src/core/<mode>.{h,cpp}` with tests in `tests/test_<mode>.cpp` (add the files to `tests/CMakeLists.txt`).
+2. Add the hardware driver in `src/protocols/<mode>.{h,cpp}` with an `init(config)` function that sets up but does not start, matching the existing outputs.
+3. Add its config struct and defaults to `signal_config.h`, its pins to `board_pins.h`.
+4. Register status rows, update README (pinout, signals table) and docs/timing.md (limits).
+
+## Build and test before committing
+
+```bash
+cmake -S tests -B build-tests && cmake --build build-tests && ctest --test-dir build-tests --output-on-failure
+```
+
+```bash
+cmake -S . -B build -G Ninja && cmake --build build
+```
+
+Both must pass, and the firmware build must produce **no warnings** from files in `src/` (`-Wall -Wextra` is on for our sources). Hardware behavior cannot be verified without a board and analyzer; say so explicitly when a change is untested on hardware.
+
+## Code style
+
+- 4-space indent, 120 column limit, braces on the same line.
+- `snake_case` functions and variables, `PascalCase` types, `kConstantName` constants, namespaces for grouping (`timing::`, `config::`, `pins::`).
+- Comments explain **why** and the hardware facts behind a choice (cycle counts, register quirks, datasheet constraints). Every `.pio` file documents its exact cycle timing. Do not narrate obvious code.
+- Fixed-size static buffers, no heap allocation in firmware.
+
+## Documentation
+
+- Keep README.md (end-user facing) and docs/timing.md current with every user-visible change: pins, defaults, limits, commands.
+- American English spelling ("color", "behavior", "initialize").
+- Never use the em dash character. Use a comma, a colon, or a plain hyphen.
+
+## Commits
+
+- Conventional Commits: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `build:`. If tied to a ticket, prefix with the ticket number instead (`ABC-12: ...`).
+- Short imperative subject line, blank line, then a body explaining what changed and why.
+- No `Co-Authored-By` or other attribution trailers.
+- Version follows SemVer in `pico_set_program_version` (CMakeLists.txt): bump minor for new modes or signals, patch for fixes.
