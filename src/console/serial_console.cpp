@@ -3,6 +3,7 @@
 #include <cstdio>
 
 #include "hardware/clocks.h"
+#include "net/wifi_ap.h"
 #include "pico/stdlib.h"
 #include "status.h"
 
@@ -40,6 +41,9 @@ void print_status() {
 void print_banner() {
     printf("\n=== Logic Analyzer Test Bench (Pico 2 W) ===\n");
     printf("All outputs are 3.3V and run in hardware (PIO/PWM/DMA).\n");
+    char wifi[128];
+    wifi_ap_status(wifi, sizeof(wifi));
+    printf("%s\n", wifi);
     print_status();
     print_help();
 }

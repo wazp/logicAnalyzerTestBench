@@ -1,8 +1,9 @@
 // Logic Analyzer Test Bench for the Raspberry Pi Pico 2 W (RP2350).
 //
-// Sets up every test signal, starts them together, then services the USB
-// serial console. After startup the CPU is not involved in generating any
-// signal: PIO, PWM and DMA run on their own.
+// Sets up every test signal, starts them together, starts the Wi-Fi access
+// point with the web guide, then services the USB serial console. After
+// startup the CPU is not involved in generating any signal: PIO, PWM and DMA
+// run on their own.
 
 #include "board_pins.h"
 #include "console/serial_console.h"
@@ -11,6 +12,7 @@
 #include "hw/pattern_output.h"
 #include "hw/pwm_output.h"
 #include "hw/square_output.h"
+#include "net/wifi_ap.h"
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"
 #include "signal_config.h"
@@ -51,6 +53,10 @@ int main() {
     // aligned with each other (a few cycles apart).
     pwm_set_mask_enabled((1u << pair_slice) | (1u << pulse_slice));
     pio_enable_sm_multi_mask_in_sync(pio0, 0, sm_mask[0], sm_mask[1]);
+
+    // Wi-Fi comes last, so a radio problem can never delay or disturb the
+    // signals. It serves the web guide from flash; see src/net/wifi_ap.h.
+    wifi_ap_start();
 
     while (true) {
         console_poll();

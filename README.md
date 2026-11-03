@@ -2,7 +2,9 @@
 
 Firmware for the **Raspberry Pi Pico 2 W** (RP2350) that turns the board into a programmable digital signal generator. It outputs ten known, simultaneous 3.3V test signals so you can learn and verify a logic analyzer: sample rates, triggers, pulse width measurement, protocol decoders (later), and so on.
 
-All signals are generated in hardware (PIO, PWM and DMA). Once started, the CPU does nothing but run the USB serial console, so the signals have no software jitter.
+All signals are generated in hardware (PIO, PWM and DMA). Once started, the CPU only runs the USB serial console and the Wi-Fi web server, so the signals have no software jitter.
+
+The board also carries its own **guided lessons**. It creates a Wi-Fi network, and any phone or laptop that joins it gets a step-by-step guide: where to plug in, which analyzer settings and trigger to use, and what the capture should look like. All you need is the Pico and this firmware.
 
 Built with the official [Raspberry Pi Pico SDK](https://github.com/raspberrypi/pico-sdk) (2.3.1) and CMake.
 
@@ -38,28 +40,45 @@ The 10 us pulse is a frame marker. Try setting your analyzer to trigger on a "pu
 
 Edit [src/signal_config.h](src/signal_config.h). Frequencies, duty cycles, the pulse width and the pattern segments are all plain values there. After rebuilding, the actual generated values (after rounding to whole clock cycles) are shown on the serial console. See [docs/timing.md](docs/timing.md) for what is achievable.
 
+## The web guide
+
+1. Power the Pico 2 W. The onboard LED lights up when the guide is available (a few seconds after boot).
+2. Join the Wi-Fi network **`TestBench-XXXX`** (the last four characters are unique per board). Password: **`testbench`**.
+3. Most phones and laptops open the guide by themselves. If not, browse to **http://192.168.4.1/**.
+
+The network has no internet access; it only serves the guide. The guide works in any modern browser, phones included. The network name and the address are also printed on the serial console.
+
+The lessons are written for the [gusmanb LogicAnalyzer](https://github.com/gusmanb/logicanalyzer) and its desktop app, but the concepts apply to any analyzer.
+
+| Track | Lessons |
+|---|---|
+| Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, pattern triggers |
+| Verify | Sanity check of analyzer channels 1 to 10 with a pass/fail checklist |
+
 ## Wiring
+
+These instructions use the gusmanb LogicAnalyzer, whose app numbers channels from 1. So **GPn goes to CH(n+1)**.
 
 ```
  Pico 2 W                      Logic analyzer
  ---------                     --------------
  GND (pin 3, 8 or 13) -------- GND            <- always connect ground first
- GP0 (pin 1)  ---------------- CH0
- GP1 (pin 2)  ---------------- CH1
+ GP0 (pin 1)  ---------------- CH1
+ GP1 (pin 2)  ---------------- CH2
  ...
- GP9 (pin 12) ---------------- CH9
+ GP9 (pin 12) ---------------- CH10
 ```
 
+- Set the analyzer **VREF switch to 3.3V**. Its input threshold follows VREF.
 - Power the Pico from USB. The analyzer and Pico must share ground.
 - Physical pin numbers count from pin 1 (top left, next to the USB connector, with the board seen from above) down the left side. GPIO numbers are not the same as physical pin numbers.
-- Many low-cost analyzers have 8 channels. Pick the 8 signals you want, for example GP2 to GP9.
-- Set the analyzer input threshold for 3.3V logic (around 1.5V to 1.65V) if it is adjustable.
+- The analyzer has 24 channels, so all ten signals fit at once. With an 8-channel analyzer, pick the signals you need.
 
 ### Electrical safety
 
 - Every output is a 3.3V push-pull GPIO. Nothing on this board drives above 3.3V.
 - Only connect the signal pins to **inputs** (analyzer probes, scope probes). Never connect them to another output, to 5V, or directly to ground.
-- Do not use GP23, GP24, GP25 or GP29. On the Pico 2 W these are wired to the CYW43439 wireless chip. The firmware refuses to build if a signal is assigned to them.
+- Do not use GP23, GP24, GP25 or GP29. On the Pico 2 W these are wired to the CYW43439 wireless chip, which runs the Wi-Fi guide. The firmware refuses to build if a signal is assigned to them.
 - Default drive strength is 4 mA. That is plenty for analyzer inputs, which draw almost nothing.
 - During development the board does not need to be connected to anything. It runs fine with nothing attached to the GPIOs.
 
@@ -70,8 +89,10 @@ Tested on Ubuntu 24.04.
 ### 1. Install the toolchain (once)
 
 ```bash
-sudo apt install cmake ninja-build gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib libusb-1.0-0-dev build-essential git
+sudo apt install cmake ninja-build gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib libusb-1.0-0-dev build-essential git python3
 ```
+
+The web guide also needs **Node.js 20 or newer** with npm (for example from [nodejs.org](https://nodejs.org/) or `nvm`). Ubuntu's own `nodejs` package may be too old.
 
 ### 2. Get the Pico SDK (once)
 
@@ -95,7 +116,9 @@ cmake -S . -B build -G Ninja
 cmake --build build
 ```
 
-The output is `build/logic_test_bench.uf2` (plus `.elf`, `.bin`, `.hex`). The first build also compiles `picotool` and `pioasm` from source, which takes a minute.
+The output is `build/logic_test_bench.uf2` (plus `.elf`, `.bin`, `.hex`). The first build also compiles `picotool` and `pioasm` from source and installs the web guide's npm packages, which takes a minute.
+
+The firmware build runs `npm run build` in `web/` and embeds the result, so the guide is always up to date with the firmware. To build without Node.js, build the web guide elsewhere, copy `web/dist/index.html` into place and configure with `-DLTB_BUILD_WEB=OFF`.
 
 The board is set to `pico2_w` in [CMakeLists.txt](CMakeLists.txt). This firmware does not support the original Pico or Pico W (RP2040).
 
@@ -132,7 +155,7 @@ tio /dev/ttyACM0
 
 (`screen /dev/ttyACM0 115200` works too. The baud rate is ignored for USB serial.)
 
-When the terminal connects, the board prints a banner and a status table showing, for each pin, the requested and the actual frequency, duty cycle and peripheral. Commands:
+When the terminal connects, the board prints a banner with the Wi-Fi details and a status table showing, for each pin, the requested and the actual frequency, duty cycle and peripheral. Commands:
 
 | Key | Action |
 |---|---|
@@ -149,7 +172,33 @@ The timing math (cycle counts, PWM dividers, pattern encoding) is plain C++ in `
 cmake -S tests -B build-tests && cmake --build build-tests && ctest --test-dir build-tests --output-on-failure
 ```
 
-The tests also check the shipped defaults: every default must be valid, exact at 150 MHz, and free of pin or state machine conflicts.
+The tests also check the shipped defaults: every default must be valid, exact at 150 MHz, and free of pin or state machine conflicts. They also check that `web/src/data/signals.json` (the signal data the guide uses) matches the C++ config.
+
+The web guide has its own tests (signal drawing, analyzer limits, and that every lesson's settings are accepted by the analyzer):
+
+```bash
+npm --prefix web test
+```
+
+## Working on the web guide
+
+The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 20 KB gzipped).
+
+```bash
+npm --prefix web ci
+```
+
+```bash
+npm --prefix web run dev
+```
+
+That serves the guide at http://localhost:5173 with live reload, no board needed. Lessons are data in `web/src/lessons/lessons.ts`. Analyzer app wording and limits live in `web/src/model/analyzer.ts`, so they are easy to correct for newer app versions.
+
+When you change `src/signal_config.h`, regenerate the guide's signal data:
+
+```bash
+./build-tests/export_signals web/src/data/signals.json
+```
 
 ## Timing and limitations
 
@@ -171,7 +220,12 @@ src/
   hw/pattern_output.*     pattern encoding + chained DMA loop
   hw/pwm_output.*         PWM slice setup (duty pair, short pulse)
   console/serial_console.* USB serial status and commands
+  net/                    Wi-Fi access point, lwIP config, web server setup
 tests/                    host unit tests (standalone CMake project)
+tools/export_signals.cpp  writes web/src/data/signals.json from the C++ config
+tools/prepare_web_content.py  gzips the guide into flash data for lwIP
+web/                      the web guide (Preact + TypeScript + Vite)
+third_party/pico-examples DHCP and DNS servers from the official examples
 docs/timing.md            precision, limits, sample rate guidance
 AGENTS.md                 development conventions
 ```
@@ -184,4 +238,5 @@ Planned modes, each as its own module under `src/protocols/`:
 - I2C controller traffic (tentative pins GP14/GP15)
 - SPI controller traffic (tentative pins GP16 to GP19)
 - Simulated Commodore 64 bus traffic (pins to be decided)
-- Runtime configuration over the serial console
+- Named signal presets (for example a 24-channel test for the Verify track), selectable from the guide
+- Joining an existing Wi-Fi network, configured over the serial console
