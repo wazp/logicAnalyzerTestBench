@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  channelForGpio,
   idealTrace,
   levelAt,
   periodNs,
@@ -19,11 +18,6 @@ describe('signals.json', () => {
     for (const s of signals) {
       expect(periodNs(s)).toBeCloseTo(1e9 / s.actualHz, 3);
     }
-  });
-
-  it('maps GPIO to 1-based analyzer channels', () => {
-    expect(channelForGpio(0)).toBe(1);
-    expect(channelForGpio(9)).toBe(10);
   });
 });
 

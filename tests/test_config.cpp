@@ -71,4 +71,12 @@ TEST(no_pin_or_state_machine_conflicts) {
     claim_pin(pins::kPattern);
     CHECK(config::kPatternPioIndex < 2);
     CHECK(used_sms.insert({config::kPatternPioIndex, config::kPatternSm}).second);
+
+    for (unsigned p = 0; p < pins::kTimelinePinCount; ++p) {
+        claim_pin(pins::kTimelineBase + p);
+    }
+    CHECK(config::kTimelinePioIndex < 2);
+    CHECK(used_sms.insert({config::kTimelinePioIndex, config::kTimelineSm}).second);
+    // PIO0 and PIO1 are completely used, which is what sends the CYW43 driver to PIO2.
+    CHECK_EQ(used_sms.size(), 8u);
 }

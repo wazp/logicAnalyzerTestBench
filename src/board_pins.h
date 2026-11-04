@@ -21,6 +21,25 @@ constexpr unsigned kPwm75 = 7;    // PWM slice 3, channel B
 constexpr unsigned kPulse = 8;    // PWM slice 4, channel A
 constexpr unsigned kPattern = 9;  // PIO (slice 4 channel B is left unused)
 
+// Protocol signals, GP10-GP22, all played by one PIO state machine from a
+// precomputed timeline (src/hw/timeline_output.cpp). They must stay one
+// contiguous block in this order: the PIO writes them as one 13-bit word.
+constexpr unsigned kTimelineBase = 10;
+constexpr unsigned kUartTx = 10;
+constexpr unsigned kUartRx = 11;  // The simulated device's reply.
+constexpr unsigned kI2cScl = 12;
+constexpr unsigned kI2cSda = 13;
+constexpr unsigned kSpiSck = 14;
+constexpr unsigned kSpiMosi = 15;
+constexpr unsigned kSpiMiso = 16;
+constexpr unsigned kSpiCs = 17;
+constexpr unsigned kWs2812 = 18;
+constexpr unsigned kOneWire = 19;
+constexpr unsigned kIrRemote = 20;
+constexpr unsigned kQuadratureA = 21;
+constexpr unsigned kQuadratureB = 22;
+constexpr unsigned kTimelinePinCount = 13;
+
 // Pins wired to the CYW43439 wireless chip on the Pico 2 W. Never use these.
 //   GP23 WL_ON, GP24 WL_D (data/IRQ), GP25 WL_CS, GP29 WL_CLK (also VSYS/3 ADC)
 constexpr unsigned kReservedPins[] = {23, 24, 25, 29};
@@ -46,6 +65,22 @@ static_assert(!is_reserved(kSquare1Hz) && !is_reserved(kSquare10Hz) && !is_reser
                   !is_reserved(kSquare1kHz) && !is_reserved(kSquare10kHz) && !is_reserved(kSquare100kHz) &&
                   !is_reserved(kPwm25) && !is_reserved(kPwm75) && !is_reserved(kPulse) && !is_reserved(kPattern),
               "a signal pin collides with a pin reserved for the CYW43 wireless chip");
+
+static_assert(kTimelineBase + kTimelinePinCount - 1 == kQuadratureB && kUartTx == kTimelineBase &&
+                  kUartRx == kTimelineBase + 1 && kI2cScl == kTimelineBase + 2 && kI2cSda == kTimelineBase + 3 &&
+                  kSpiSck == kTimelineBase + 4 && kSpiMosi == kTimelineBase + 5 && kSpiMiso == kTimelineBase + 6 &&
+                  kSpiCs == kTimelineBase + 7 && kWs2812 == kTimelineBase + 8 && kOneWire == kTimelineBase + 9 &&
+                  kIrRemote == kTimelineBase + 10 && kQuadratureA == kTimelineBase + 11,
+              "protocol pins must be one contiguous block in timeline order");
+
+constexpr bool timeline_overlaps_reserved() {
+    for (unsigned pin = kTimelineBase; pin < kTimelineBase + kTimelinePinCount; ++pin) {
+        if (is_reserved(pin)) return true;
+    }
+    return false;
+}
+static_assert(!timeline_overlaps_reserved(), "a protocol pin collides with a pin reserved for the CYW43 chip");
+static_assert(kTimelineBase > kPattern, "protocol pins must not overlap the basic signals");
 
 // GP6 and GP7 must be the A and B channels of the same slice, because they
 // share one PWM frequency and only differ in duty cycle.

@@ -1,17 +1,23 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { formatHz, formatRate, formatTime } from '../model/format';
-import { channelForGpio, idealTrace, levelAt, sampledTrace, signalByGpio, type Trace } from '../model/signals';
-import { channelColor } from './channel';
+import { shortLabel, signalColor } from '../model/board';
+import { formatRate, formatTime } from '../model/format';
+import { idealWaveTrace, sampledWaveTrace, waveLevelAt, type Trace, type Wave } from '../model/wave';
 
-const LABEL_W = 84;
+const LABEL_W = 92;
 const RIGHT_PAD = 12;
 const ROW_H = 38;
 const TRACE_H = 18;
 const AXIS_H = 26;
 /** Below this many pixels per sample we stop drawing individual sample dots. */
 const MIN_PX_PER_DOT = 7;
-/** Sample phase used for all drawn captures (see sampledTrace). */
+/** Sample phase used for all drawn captures (see sampledWaveTrace). */
 const PHASE = 0.3;
+
+/** One trace to draw: a pin and its waveform. */
+export interface Row {
+  gpio: number;
+  wave: Wave;
+}
 
 function useWidth<T extends Element>(fallback: number) {
   const ref = useRef<T>(null);
@@ -37,22 +43,22 @@ function ticks(start: number, end: number): number[] {
 }
 
 interface Props {
-  gpios: number[];
+  rows: Row[];
   startNs: number;
   endNs: number;
   sampleRateHz?: number;
 }
 
 /**
- * Expected capture for a set of GPIOs. With a sample rate, it shows what the
- * analyzer records (including aliasing); without, the ideal signal. The
- * trigger point is t = 0.
+ * Expected capture. With a sample rate, it shows what an analyzer at that
+ * rate records (including aliasing); without, the ideal signal. The trigger
+ * point is t = 0.
  */
-export function Waveform({ gpios, startNs, endNs, sampleRateHz }: Props) {
+export function Waveform({ rows, startNs, endNs, sampleRateHz }: Props) {
   const [ref, width] = useWidth<HTMLDivElement>(760);
   const plotW = width - LABEL_W - RIGHT_PAD;
   const x = (t: number) => LABEL_W + ((t - startNs) / (endNs - startNs)) * plotW;
-  const height = gpios.length * ROW_H + AXIS_H;
+  const height = rows.length * ROW_H + AXIS_H;
 
   const stepNs = sampleRateHz ? 1e9 / sampleRateHz : 0;
   const sampleCount = sampleRateHz ? Math.floor((endNs - startNs) / stepNs) : 0;
@@ -77,15 +83,14 @@ export function Waveform({ gpios, startNs, endNs, sampleRateHz }: Props) {
             </text>
           </g>
         )}
-        {gpios.map((gpio, row) => {
-          const sig = signalByGpio(gpio);
-          const ch = channelForGpio(gpio);
+        {rows.map(({ gpio, wave }, row) => {
+          const color = signalColor(gpio);
           const yTop = row * ROW_H + (ROW_H - TRACE_H) / 2;
           const y = (level: number) => (level ? yTop : yTop + TRACE_H);
           const maxEdges = Math.floor(plotW);
           const trace: Trace = sampleRateHz
-            ? sampledTrace(sig, startNs, endNs, sampleRateHz, PHASE, maxEdges)
-            : idealTrace(sig, startNs, endNs, maxEdges);
+            ? sampledWaveTrace(wave, startNs, endNs, sampleRateHz, PHASE, maxEdges)
+            : idealWaveTrace(wave, startNs, endNs, maxEdges);
 
           let path = '';
           if (!trace.dense) {
@@ -95,26 +100,26 @@ export function Waveform({ gpios, startNs, endNs, sampleRateHz }: Props) {
           }
           return (
             <g key={gpio}>
-              <text class="row-label" x={8} y={yTop + TRACE_H / 2 + 4} style={{ fill: channelColor(ch) }}>
-                CH{ch}
-              </text>
-              <text class="row-sub" x={46} y={yTop + TRACE_H / 2 + 4}>
+              <text class="row-label" x={8} y={yTop + TRACE_H / 2 + 4} style={{ fill: color }}>
                 GP{gpio}
+              </text>
+              <text class="row-sub" x={44} y={yTop + TRACE_H / 2 + 4}>
+                {shortLabel(gpio)}
               </text>
               {trace.dense ? (
                 <g>
-                  <rect class="dense" x={LABEL_W} y={yTop} width={plotW} height={TRACE_H} style={{ fill: channelColor(ch) }} />
+                  <rect class="dense" x={LABEL_W} y={yTop} width={plotW} height={TRACE_H} style={{ fill: color }} />
                   <text class="dense-label" x={LABEL_W + plotW / 2} y={yTop + TRACE_H / 2 + 4} text-anchor="middle">
-                    toggling at {formatHz(sig.actualHz)}, too fast to draw at this zoom
+                    too many edges to draw at this zoom
                   </text>
                 </g>
               ) : (
-                <path class="trace" d={path} style={{ stroke: channelColor(ch) }} />
+                <path class="trace" d={path} style={{ stroke: color }} />
               )}
               {showDots &&
                 Array.from({ length: sampleCount }, (_, k) => {
                   const t = startNs + (k + PHASE) * stepNs;
-                  return <circle key={k} class="sample-dot" cx={x(t)} cy={y(levelAt(sig, t))} r="2.2" />;
+                  return <circle key={k} class="sample-dot" cx={x(t)} cy={y(waveLevelAt(wave, t))} r="2.2" />;
                 })}
             </g>
           );

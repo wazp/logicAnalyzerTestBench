@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { lessonById, lessons } from './lessons/lessons';
+import { lessonById, lessons } from './lessons';
 import { HomePage } from './pages/HomePage';
 import { LessonPage } from './pages/LessonPage';
 import { WifiPage } from './pages/WifiPage';
@@ -36,6 +36,8 @@ function Nav({ route }: { route: string }) {
       {link('/', 'Start here')}
       <div class="nav-group">Learn</div>
       {lessons.filter((l) => l.track === 'learn').map((l) => link(`/lesson/${l.id}`, l.title))}
+      <div class="nav-group">Protocols</div>
+      {lessons.filter((l) => l.track === 'protocols').map((l) => link(`/lesson/${l.id}`, l.title))}
       <div class="nav-group">Verify</div>
       {lessons.filter((l) => l.track === 'verify').map((l) => link(`/lesson/${l.id}`, l.title))}
       <div class="nav-group">Settings</div>

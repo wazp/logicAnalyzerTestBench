@@ -1,6 +1,5 @@
+import { shortLabel, signalColor } from '../model/board';
 import { headerPins, recommendedGroundPins, type HeaderPin } from '../model/pico';
-import { channelForGpio } from '../model/signals';
-import { channelColor } from './channel';
 
 // Top view of the Pico 2 W: pins 1-20 down the left edge, 21-40 up the right.
 const ROW = 17;
@@ -15,7 +14,7 @@ function position(pin: number): { x: number; y: number; left: boolean } {
   return { x: BOARD_X + BOARD_W - 10, y: TOP + (40 - pin) * ROW, left: false };
 }
 
-/** The Pico header with the pins used by a lesson highlighted and labeled with their analyzer channel. */
+/** The Pico header with the pins used by a lesson highlighted and labeled with their signal. */
 export function PinDiagram({ gpios }: { gpios: number[] }) {
   const used = new Set(gpios);
   const pinClass = (p: HeaderPin) => {
@@ -38,12 +37,12 @@ export function PinDiagram({ gpios }: { gpios: number[] }) {
         const { x, y, left } = position(p.pin);
         const isUsed = p.gpio !== undefined && used.has(p.gpio);
         const isGnd = recommendedGroundPins.includes(p.pin);
-        const channel = isUsed ? channelForGpio(p.gpio!) : 0;
+        const color = isUsed ? signalColor(p.gpio!) : undefined;
         const labelX = left ? x - 12 : x + 12;
         const anchor = left ? 'end' : 'start';
         return (
           <g key={p.pin} class={pinClass(p)}>
-            <circle cx={x} cy={y} r="5" style={isUsed ? { fill: channelColor(channel) } : undefined} />
+            <circle cx={x} cy={y} r="5" style={color ? { fill: color } : undefined} />
             <text class="pin-num" x={left ? x + 10 : x - 10} y={y + 3.5} text-anchor={left ? 'start' : 'end'}>
               {p.pin}
             </text>
@@ -54,15 +53,15 @@ export function PinDiagram({ gpios }: { gpios: number[] }) {
               <g>
                 <rect
                   class="ch-badge"
-                  x={left ? labelX - 92 : labelX + 52}
+                  x={left ? labelX - 100 : labelX + 48}
                   y={y - 8}
-                  width="40"
+                  width="52"
                   height="16"
                   rx="8"
-                  style={{ fill: channelColor(channel) }}
+                  style={{ fill: color }}
                 />
-                <text class="ch-badge-text" x={left ? labelX - 72 : labelX + 72} y={y + 4} text-anchor="middle">
-                  CH{channel}
+                <text class="ch-badge-text" x={left ? labelX - 74 : labelX + 74} y={y + 4} text-anchor="middle">
+                  {shortLabel(p.gpio!)}
                 </text>
               </g>
             )}

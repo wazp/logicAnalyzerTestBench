@@ -1,7 +1,8 @@
 import { useState } from 'preact/hooks';
-import type { View } from '../lessons/lessons';
+import type { View } from '../lessons/types';
 import { formatRate } from '../model/format';
-import { Waveform } from './Waveform';
+import { signalByGpio, waveOf } from '../model/signals';
+import { Waveform, type Row } from './Waveform';
 
 /** Switches between the views of one capture, and between sample rates when a view offers them. */
 export function ViewTabs({ gpios, views }: { gpios: number[]; views: View[] }) {
@@ -13,6 +14,9 @@ export function ViewTabs({ gpios, views }: { gpios: number[]; views: View[] }) {
     setIndex(i);
     setRate(views[i].sampleRateHz);
   };
+
+  // Views of the basic signals draw every wired pin; protocol views bring their own rows.
+  const rows: Row[] = view.rows ?? gpios.map((g) => ({ gpio: g, wave: waveOf(signalByGpio(g)) }));
 
   return (
     <figure class="views">
@@ -36,7 +40,7 @@ export function ViewTabs({ gpios, views }: { gpios: number[]; views: View[] }) {
           </div>
         )}
       </div>
-      <Waveform gpios={gpios} startNs={view.startNs} endNs={view.endNs} sampleRateHz={rate} />
+      <Waveform rows={rows} startNs={view.startNs} endNs={view.endNs} sampleRateHz={rate} />
       <figcaption>{view.caption}</figcaption>
     </figure>
   );

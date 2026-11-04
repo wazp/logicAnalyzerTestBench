@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
-import type { Check } from '../lessons/lessons';
-import { channelForGpio } from '../model/signals';
-import { channelColor } from './channel';
+import type { Check } from '../lessons';
+import { signalColor, signalName } from '../model/board';
 
 type Result = 'pass' | 'fail' | undefined;
 
@@ -38,7 +37,7 @@ export function Checklist({ lessonId, checks }: { lessonId: string; checks: Chec
       <table>
         <thead>
           <tr>
-            <th>Channel</th>
+            <th>Signal</th>
             <th>Measure</th>
             <th>Expected</th>
             <th>Result</th>
@@ -46,12 +45,11 @@ export function Checklist({ lessonId, checks }: { lessonId: string; checks: Chec
         </thead>
         <tbody>
           {checks.map((c) => {
-            const ch = channelForGpio(c.gpio);
             return (
               <tr key={c.id} class={results[c.id] ?? ''}>
                 <td>
-                  <span class="ch-dot" style={{ background: channelColor(ch) }} />
-                  CH{ch} <span class="muted">GP{c.gpio}</span>
+                  <span class="ch-dot" style={{ background: signalColor(c.gpio) }} />
+                  GP{c.gpio} <span class="muted">{signalName(c.gpio)}</span>
                 </td>
                 <td>{c.measure}</td>
                 <td>{c.expected}</td>

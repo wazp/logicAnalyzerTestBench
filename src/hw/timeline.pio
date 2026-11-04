@@ -1,0 +1,21 @@
+; Timeline player: drives 13 consecutive pins (GP10-GP22) from a stream of
+; (pin levels, duration) words, fed continuously by DMA (timeline_output.cpp).
+;
+; Word layout (see src/core/timeline.h):
+;   bits 0..12   level of each pin, bit 0 = the lowest pin
+;   bits 13..31  loop count
+; The OSR shifts right with autopull at 32 bits, so the levels come out first.
+;
+; Timing per word: `out pins` (1) + `out x` (1) + `jmp x--` executed count+1
+; times = count + 3 cycles. All 13 pins change together on the first
+; instruction of each word. As long as DMA keeps the FIFO from running empty,
+; autopull never stalls and every word is cycle exact.
+
+.program timeline
+
+.wrap_target
+    out pins, 13        ; set all pin levels for this word
+    out x, 19           ; load the duration
+delay:
+    jmp x-- delay
+.wrap

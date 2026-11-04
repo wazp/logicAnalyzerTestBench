@@ -1,49 +1,51 @@
-import { analyzer, captureWindow, describeTrigger, modeFor, validateSettings, type CaptureSettings } from '../model/analyzer';
+import { shortLabel } from '../model/board';
+import { captureWindow, describeTrigger, samplesNeeded, validateSettings, type CaptureSettings } from '../model/capture';
 import { formatCount, formatRate, formatTime } from '../model/format';
 
-function channelList(chs: number[]): string {
-  const sorted = [...chs].sort((a, b) => a - b);
-  const contiguous = sorted.every((c, i) => i === 0 || c === sorted[i - 1] + 1);
-  return contiguous && sorted.length > 2 ? `${sorted[0]} to ${sorted[sorted.length - 1]}` : sorted.join(', ');
-}
-
-/** The settings to enter in the analyzer app, plus what they add up to. */
+/** What to set up in the analyzer software, plus what it adds up to. */
 export function SettingsCard({ settings }: { settings: CaptureSettings }) {
   const w = captureWindow(settings);
-  const mode = modeFor(settings.channels);
   const issues = validateSettings(settings);
   return (
     <div class="settings-card">
-      <div class="settings-title">{analyzer.appName} settings</div>
+      <div class="settings-title">Capture settings</div>
       <dl>
-        <dt>Channels</dt>
-        <dd>{channelList(settings.channels)}</dd>
+        <dt>Record</dt>
+        <dd>
+          {settings.gpios.map((g, i) => (
+            <span key={g} class="nowrap">
+              GP{g} <span class="muted">({shortLabel(g)})</span>
+              {i < settings.gpios.length - 1 ? ', ' : ''}
+            </span>
+          ))}
+        </dd>
         <dt>Sample rate</dt>
         <dd>
-          {formatRate(settings.sampleRateHz)} <span class="muted">({formatCount(settings.sampleRateHz)} Hz)</span>
+          {formatRate(settings.sampleRateHz)} <span class="muted">or faster</span>
         </dd>
-        <dt>Pre-trigger</dt>
-        <dd>{formatCount(settings.preSamples)} samples</dd>
-        <dt>Post-trigger</dt>
-        <dd>{formatCount(settings.postSamples)} samples</dd>
+        <dt>Length</dt>
+        <dd>
+          {formatTime(w.postNs)} after the trigger
+          {w.preNs > 0 && <span class="muted">, {formatTime(w.preNs)} before if your analyzer keeps it</span>}
+        </dd>
         <dt>Trigger</dt>
         <dd>{describeTrigger(settings.trigger)}</dd>
-        {settings.burstCount && (
+        {settings.decoder && (
           <>
-            <dt>Burst</dt>
-            <dd>{settings.burstCount}</dd>
+            <dt>Decoder</dt>
+            <dd>{settings.decoder}</dd>
           </>
         )}
       </dl>
       <div class="settings-derived">
         <div>
-          <span class="muted">Window</span> {formatTime(-w.preNs)} to +{formatTime(w.postNs)}
+          <span class="muted">Inputs</span> {settings.gpios.length}
         </div>
         <div>
           <span class="muted">One sample</span> {formatTime(1e9 / settings.sampleRateHz)}
         </div>
         <div>
-          <span class="muted">Buffer mode</span> channels up to {mode.maxChannel}, max {formatCount(mode.maxPostSamples)} post
+          <span class="muted">Samples per input</span> about {formatCount(samplesNeeded(settings))}
         </div>
       </div>
       {issues.length > 0 && (
