@@ -1,0 +1,109 @@
+# Builds and tests everything on every push: the host unit tests (including
+# the checks that the guide's JSON data matches the firmware), the web guide,
+# and the firmware itself. The firmware .uf2 files are kept as artifacts, so
+# anyone can download a build without installing a toolchain.
+
+name: CI
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PICO_SDK_VERSION: 2.3.1
+
+jobs:
+  host-tests:
+    name: Host tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S tests -B build-tests
+      - name: Build
+        run: cmake --build build-tests --parallel
+      - name: Test
+        run: ctest --test-dir build-tests --output-on-failure
+
+  web:
+    name: Web guide
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit -p .
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  firmware:
+    name: Firmware
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the ARM toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build gcc-arm-none-eabi \
+            libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Cache the Pico SDK
+        id: sdk-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/pico-sdk
+          key: pico-sdk-${{ env.PICO_SDK_VERSION }}
+
+      - name: Get the Pico SDK
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --branch "$PICO_SDK_VERSION" --depth 1 https://github.com/raspberrypi/pico-sdk.git ~/pico-sdk
+          git -C ~/pico-sdk submodule update --init --depth 1
+
+      - name: Build (normal and network debug)
+        run: |
+          set -o pipefail  # Keep a failed build failing through tee.
+          export PICO_SDK_PATH="$HOME/pico-sdk"
+          cmake -S . -B build -G Ninja
+          cmake --build build 2>&1 | tee build.log
+          cmake -S . -B build-debug -G Ninja -DLTB_NET_DEBUG=ON
+          cmake --build build-debug 2>&1 | tee -a build.log
+
+      - name: No warnings from our sources
+        run: |
+          if grep -E "^$GITHUB_WORKSPACE/src/.*warning:" build.log; then
+            echo "::error::The firmware build has warnings in src/ (AGENTS.md requires none)."
+            exit 1
+          fi
+
+      - name: Firmware size
+        run: arm-none-eabi-size build/logic_test_bench.elf
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: logic_test_bench-${{ github.sha }}
+          path: |
+            build/logic_test_bench.uf2
+            build-debug/logic_test_bench.uf2
+          if-no-files-found: error
