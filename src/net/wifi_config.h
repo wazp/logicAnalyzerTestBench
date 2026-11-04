@@ -12,7 +12,13 @@ namespace wifi_config {
 constexpr const char* kSsidPrefix = "TestBench-";
 constexpr const char* kPassword = "testbench";
 
-// Must match pico_configure_ip4_address in CMakeLists.txt.
-constexpr const char* kApAddress = "192.168.4.1";
+// Deliberately not a private (192.168.x.x) address. Every hostname resolves
+// to this address, and recent Android versions treat a connectivity-check
+// hostname that resolves to a private address as "no internet" instead of a
+// sign-in portal: they skip the check, never show the guide, and keep
+// browsers off the network. 4.3.2.1 is the usual choice for isolated captive
+// portals; the network has no internet, so it hides nothing real.
+// Must match LTB_AP_ADDRESS in CMakeLists.txt.
+constexpr const char* kApAddress = "4.3.2.1";
 
 }  // namespace wifi_config

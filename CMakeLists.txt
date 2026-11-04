@@ -72,9 +72,17 @@ target_link_libraries(logic_test_bench
     pico_lwip_http
 )
 
-# Access point address. Must match kApAddress in src/net/wifi_config.h.
-set(LTB_AP_ADDRESS 192.168.4.1)
+# Access point address. Must match kApAddress in src/net/wifi_config.h, which
+# explains why it is not a private address.
+set(LTB_AP_ADDRESS 4.3.2.1)
 pico_configure_ip4_address(logic_test_bench PRIVATE CYW43_DEFAULT_IP_AP_ADDRESS ${LTB_AP_ADDRESS})
+
+# Logs DNS queries and HTTP requests to the serial console, for debugging
+# what phones ask the captive portal. See src/net/lwipopts.h.
+option(LTB_NET_DEBUG "Log DNS and HTTP traffic to the serial console" OFF)
+if (LTB_NET_DEBUG)
+    target_compile_definitions(logic_test_bench PRIVATE LTB_NET_DEBUG)
+endif()
 
 # --- Web guide, embedded in flash ---
 set(WEB_DIR ${CMAKE_CURRENT_LIST_DIR}/web)
@@ -118,6 +126,6 @@ pico_enable_stdio_uart(logic_test_bench 0)
 
 pico_set_program_name(logic_test_bench "logic_test_bench")
 pico_set_program_description(logic_test_bench "Programmable digital test signal generator for logic analyzers")
-pico_set_program_version(logic_test_bench "0.2.0")
+pico_set_program_version(logic_test_bench "0.2.1")
 
 pico_add_extra_outputs(logic_test_bench)

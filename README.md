@@ -44,9 +44,11 @@ Edit [src/signal_config.h](src/signal_config.h). Frequencies, duty cycles, the p
 
 1. Power the Pico 2 W. The onboard LED lights up when the guide is available (a few seconds after boot).
 2. Join the Wi-Fi network **`TestBench-XXXX`** (the last four characters are unique per board). Password: **`testbench`**.
-3. Most phones and laptops open the guide by themselves. If not, browse to **http://192.168.4.1/**.
+3. The phone or laptop treats the network as a sign-in page (like hotel Wi-Fi) and shows the guide. On Android, tap **Sign in to Wi-Fi network** if the guide does not open by itself. You can also browse to **http://4.3.2.1/**.
 
 The network has no internet access; it only serves the guide. The guide works in any modern browser, phones included. The network name and the address are also printed on the serial console.
+
+The address is `4.3.2.1` rather than the usual `192.168.x.x` on purpose. Recent Android versions decide a network has "no internet" when their connectivity check resolves to a private address. They then skip the sign-in page and keep browsers off the network. Tested on a Samsung Galaxy S24 (Android 17).
 
 The lessons are written for the [gusmanb LogicAnalyzer](https://github.com/gusmanb/logicanalyzer) and its desktop app, but the concepts apply to any analyzer.
 
@@ -199,6 +201,20 @@ When you change `src/signal_config.h`, regenerate the guide's signal data:
 ```bash
 ./build-tests/export_signals web/src/data/signals.json
 ```
+
+### Debugging the Wi-Fi guide
+
+If a phone joins but the guide does not appear, build with network logging. The firmware then prints every DNS query, TCP connection attempt and HTTP request on the serial console:
+
+```bash
+cmake -S . -B build-debug -G Ninja -DLTB_NET_DEBUG=ON
+```
+
+```bash
+cmake --build build-debug
+```
+
+Flash `build-debug/logic_test_bench.uf2`. The Wi-Fi line in the console banner ends with "(network debug logging on)" when the debug build is running.
 
 ## Timing and limitations
 

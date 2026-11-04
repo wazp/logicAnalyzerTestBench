@@ -6,11 +6,18 @@ Output: pico_fsdata.inc, included by lwIP's fs.c via HTTPD_FSDATA_FILE
         (see src/net/lwipopts.h)
 
 Two files are served:
-  /index.html  the guide, gzip compressed (about 20 KB instead of 56 KB)
-  /404.html    a redirect to the guide. lwIP answers every unknown URL with
-               this, which turns the connectivity checks phones and laptops
-               make after joining a network into a captive portal that opens
-               the guide by itself.
+  /guide     the guide, gzip compressed (about 20 KB instead of 56 KB)
+  /404.html  a redirect to /guide. lwIP answers every other URL with this,
+             including "/", because there is no index file.
+
+Redirecting everything except /guide is what makes the captive portal work.
+After joining a network, phones fetch a known URL to check for internet.
+Stock Android asks for /generate_204, but a Samsung Galaxy S24 (One UI) was
+seen asking for "/", so a guide served at "/" answered its check with a
+normal page. The phone then decided the network had no internet, offered
+"Connect this time", and kept browsers off it. A redirect marks the network
+as a sign-in portal instead. Typing http://<ip>/ still works, it redirects
+to /guide.
 
 Each entry stores the complete HTTP response header followed by the body, the
 same layout the SDK's makefsdata.py produces. We generate it ourselves so the
@@ -61,8 +68,8 @@ def main() -> int:
     page = gzip.compress(source.read_bytes(), compresslevel=9, mtime=0)
     entries = [
         entry(
-            "index_html",
-            "/index.html",
+            "guide",
+            "/guide",
             http_header(
                 "200 OK",
                 [
@@ -77,7 +84,7 @@ def main() -> int:
         entry(
             "404_html",
             "/404.html",
-            http_header("302 Found", [f"Location: http://{ip}/", "Content-Length: 0"]),
+            http_header("302 Found", [f"Location: http://{ip}/guide", "Content-Length: 0"]),
             b"",
         ),
     ]

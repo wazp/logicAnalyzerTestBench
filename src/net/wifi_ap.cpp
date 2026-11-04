@@ -64,8 +64,14 @@ bool wifi_ap_start() {
 
 void wifi_ap_status(char* out, size_t size) {
     if (running) {
-        snprintf(out, size, "Wi-Fi \"%s\", password \"%s\", guide at http://%s/", ssid, wifi_config::kPassword,
-                 wifi_config::kApAddress);
+        snprintf(out, size, "Wi-Fi \"%s\", password \"%s\", guide at http://%s/%s", ssid, wifi_config::kPassword,
+                 wifi_config::kApAddress,
+#ifdef LTB_NET_DEBUG
+                 " (network debug logging on)"
+#else
+                 ""
+#endif
+        );
     } else if (init_error != 0) {
         snprintf(out, size, "Wi-Fi off (radio init failed, error %d)", init_error);
     } else {

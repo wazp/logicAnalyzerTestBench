@@ -27,6 +27,14 @@
 #define LWIP_DNS 0
 #define LWIP_DHCP 0  // We are the DHCP server (third_party dhcpserver), not a client.
 
+// A device asking for an address sends from 0.0.0.0. ip4_input drops such
+// packets unless LWIP_DHCP or this hook is defined, so without it the DHCP
+// server never sees a request and phones join but never get an address.
+// Defining the hook enables lwIP's link-layer addressing path, which accepts
+// a 0.0.0.0 source on any port; the port test only matters while the netif is
+// down. The port arrives in network byte order.
+#define LWIP_IP_ACCEPT_UDP_PORT(port) ((port) == PP_NTOHS(67))
+
 #define TCP_MSS 1460
 #define TCP_WND (8 * TCP_MSS)
 #define TCP_SND_BUF (8 * TCP_MSS)
@@ -49,5 +57,15 @@
 #define LWIP_HTTPD_SSI 0
 #define LWIP_HTTPD_SUPPORT_POST 0
 #define HTTPD_FSDATA_FILE "pico_fsdata.inc"
+
+// Debug builds only (cmake -DLTB_NET_DEBUG=ON): print DNS queries, TCP
+// connection attempts, raw HTTP requests and HTTP server activity to the USB
+// serial console (see net_debug_hooks.h). Printing happens in interrupt
+// context, so keep it off in normal builds.
+#ifdef LTB_NET_DEBUG
+#define LWIP_DEBUG 1
+#define HTTPD_DEBUG LWIP_DBG_ON
+#define LWIP_HOOK_FILENAME "net_debug_hooks.h"
+#endif
 
 #endif  // LWIPOPTS_H
