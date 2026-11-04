@@ -8,6 +8,8 @@ Everything is derived from `clk_sys`, which the Pico SDK sets to **150 MHz** on 
 
 **Jitter** is effectively zero. No signal depends on interrupts, timers or CPU code after startup. Edges always land on a `clk_sys` edge.
 
+**Wi-Fi does not affect the signals.** The radio and web server run on the CPU and in PIO2, while the signals run in PIO0, PIO1, the PWM slices and their own DMA channels. Wi-Fi starts only after the signals are running, and if it fails the signals keep going.
+
 ## Square waves (GP0 to GP5): PIO
 
 Program: [src/hw/square_wave.pio](../src/hw/square_wave.pio). Each output has its own state machine running at the full 150 MHz.
@@ -92,4 +94,4 @@ A common exercise: capture GP5 (100 kHz) at 200 kS/s and watch it alias. Then ra
 
 - **5V systems (C64):** The Commodore 64 bus is 5V TTL. 3.3V outputs are usually read as high by TTL inputs (threshold about 2.0V), but anything driving back into the Pico must be level shifted. Plan for level shifters before connecting to real hardware.
 - **RP2350 erratum E9:** GPIO inputs with the internal pull-down enabled can latch high. It does not affect outputs, but matters once inputs are added (for example clock inputs or bus snooping). Use external pull-downs if needed.
-- **PIO capacity:** PIO0 is full (4 state machines). PIO1 has one free state machine. PIO2 is entirely free, but enabling Wi-Fi or the Pico 2 W LED (via the CYW43 driver) uses one PIO state machine and DMA.
+- **PIO capacity:** PIO0 is full (4 state machines). PIO1 has one free state machine (SM3). The CYW43 Wi-Fi driver uses one state machine in PIO2 plus DMA channels; the firmware holds PIO1 SM3 while the driver starts so it lands there. PIO2 has three state machines left.

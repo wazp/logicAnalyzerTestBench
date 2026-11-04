@@ -2,7 +2,9 @@
 
 Firmware for the **Raspberry Pi Pico 2 W** (RP2350) that turns the board into a programmable digital signal generator. It outputs ten known, simultaneous 3.3V test signals so you can learn and verify a logic analyzer: sample rates, triggers, pulse width measurement, protocol decoders (later), and so on.
 
-All signals are generated in hardware (PIO, PWM and DMA). Once started, the CPU does nothing but run the USB serial console, so the signals have no software jitter.
+All signals are generated in hardware (PIO, PWM and DMA). Once started, the CPU only runs the USB serial console and the Wi-Fi web server, so the signals have no software jitter.
+
+The board also carries its own **guided lessons**. It creates a Wi-Fi network, and any phone or laptop that joins it gets a step-by-step guide: where to plug in, which analyzer settings and trigger to use, and what the capture should look like. All you need is the Pico and this firmware.
 
 Built with the official [Raspberry Pi Pico SDK](https://github.com/raspberrypi/pico-sdk) (2.3.1) and CMake.
 
@@ -38,28 +40,69 @@ The 10 us pulse is a frame marker. Try setting your analyzer to trigger on a "pu
 
 Edit [src/signal_config.h](src/signal_config.h). Frequencies, duty cycles, the pulse width and the pattern segments are all plain values there. After rebuilding, the actual generated values (after rounding to whole clock cycles) are shown on the serial console. See [docs/timing.md](docs/timing.md) for what is achievable.
 
+## The web guide
+
+1. Power the Pico 2 W. The onboard LED lights up when the guide is available (a few seconds after boot).
+2. Join the Wi-Fi network **`TestBench-XXXX`** (the last four characters are unique per board). Password: **`testbench`**.
+3. The phone or laptop treats the network as a sign-in page (like hotel Wi-Fi) and shows the guide. On Android, tap **Sign in to Wi-Fi network** if the guide does not open by itself. You can also browse to **http://4.3.2.1/**.
+
+The hotspot has no internet access; it only serves the guide. The guide works in any modern browser, phones included. The network name and the address are also printed on the serial console.
+
+The address is `4.3.2.1` rather than the usual `192.168.x.x` on purpose. Recent Android versions decide a network has "no internet" when their connectivity check resolves to a private address. They then skip the sign-in page and keep browsers off the network. Tested on a Samsung Galaxy S24 (Android 17).
+
+### Connecting the test bench to your Wi-Fi
+
+To read the guide on the computer that runs the analyzer app, without losing that computer's internet connection, let the test bench join your own network:
+
+1. Join the `TestBench-XXXX` hotspot as above and open **Settings > Wi-Fi** in the guide.
+2. Press **Scan for networks**, pick yours and enter its password (or **Enter a name** for a hidden network). Press **Join**.
+3. The test bench saves the network and restarts. Connect your device back to your own network and open **http://testbench-xxxx.local/**, with the same four characters as the hotspot name. The page shows the exact address before it restarts.
+
+From then on the test bench joins that network at every boot and its own hotspot stays off. If the `.local` name does not open (some older Windows and Android versions do not support it), use the IP address instead: press `w` on the serial console, or look for `testbench-xxxx` in your router's list of devices.
+
+If the network can't be joined at boot (wrong password, out of range, router off), the `TestBench-XXXX` hotspot comes back after about 20 seconds and the Wi-Fi page says what went wrong. If the link drops later, the test bench keeps trying to rejoin.
+
+To forget the network and go back to the hotspot, use any of these:
+
+- **Forget** on the guide's Wi-Fi page.
+- Press `f`, then `y`, on the serial console.
+- While the board is running, hold the **BOOTSEL** button until the LED goes off (3 seconds), then release it. No computer needed. (It restarts only after you let go: holding BOOTSEL during a restart would put the Pico in flashing mode instead.)
+
+The test signals keep running through all of this. Joining, scanning and saving settings never stop or disturb them.
+
+Security: the saved password is stored in plain text in the Pico's flash, and anyone who can open the guide (on the hotspot or your network) can change or forget the network. The guide never shows the saved password. This is meant for a workbench, not for a network you need to protect from the people near it.
+
+The lessons are written for the [gusmanb LogicAnalyzer](https://github.com/gusmanb/logicanalyzer) and its desktop app, but the concepts apply to any analyzer.
+
+| Track | Lessons |
+|---|---|
+| Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, pattern triggers |
+| Verify | Sanity check of analyzer channels 1 to 10 with a pass/fail checklist |
+
 ## Wiring
+
+These instructions use the gusmanb LogicAnalyzer, whose app numbers channels from 1. So **GPn goes to CH(n+1)**.
 
 ```
  Pico 2 W                      Logic analyzer
  ---------                     --------------
  GND (pin 3, 8 or 13) -------- GND            <- always connect ground first
- GP0 (pin 1)  ---------------- CH0
- GP1 (pin 2)  ---------------- CH1
+ GP0 (pin 1)  ---------------- CH1
+ GP1 (pin 2)  ---------------- CH2
  ...
- GP9 (pin 12) ---------------- CH9
+ GP9 (pin 12) ---------------- CH10
 ```
 
+- Set the analyzer **VREF switch to 3.3V**. Its input threshold follows VREF.
 - Power the Pico from USB. The analyzer and Pico must share ground.
 - Physical pin numbers count from pin 1 (top left, next to the USB connector, with the board seen from above) down the left side. GPIO numbers are not the same as physical pin numbers.
-- Many low-cost analyzers have 8 channels. Pick the 8 signals you want, for example GP2 to GP9.
-- Set the analyzer input threshold for 3.3V logic (around 1.5V to 1.65V) if it is adjustable.
+- The analyzer has 24 channels, so all ten signals fit at once. With an 8-channel analyzer, pick the signals you need.
 
 ### Electrical safety
 
 - Every output is a 3.3V push-pull GPIO. Nothing on this board drives above 3.3V.
 - Only connect the signal pins to **inputs** (analyzer probes, scope probes). Never connect them to another output, to 5V, or directly to ground.
-- Do not use GP23, GP24, GP25 or GP29. On the Pico 2 W these are wired to the CYW43439 wireless chip. The firmware refuses to build if a signal is assigned to them.
+- Do not use GP23, GP24, GP25 or GP29. On the Pico 2 W these are wired to the CYW43439 wireless chip, which runs the Wi-Fi guide. The firmware refuses to build if a signal is assigned to them.
 - Default drive strength is 4 mA. That is plenty for analyzer inputs, which draw almost nothing.
 - During development the board does not need to be connected to anything. It runs fine with nothing attached to the GPIOs.
 
@@ -70,8 +113,10 @@ Tested on Ubuntu 24.04.
 ### 1. Install the toolchain (once)
 
 ```bash
-sudo apt install cmake ninja-build gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib libusb-1.0-0-dev build-essential git
+sudo apt install cmake ninja-build gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib libusb-1.0-0-dev build-essential git python3
 ```
+
+The web guide also needs **Node.js 20 or newer** with npm (for example from [nodejs.org](https://nodejs.org/) or `nvm`). Ubuntu's own `nodejs` package may be too old.
 
 ### 2. Get the Pico SDK (once)
 
@@ -95,7 +140,9 @@ cmake -S . -B build -G Ninja
 cmake --build build
 ```
 
-The output is `build/logic_test_bench.uf2` (plus `.elf`, `.bin`, `.hex`). The first build also compiles `picotool` and `pioasm` from source, which takes a minute.
+The output is `build/logic_test_bench.uf2` (plus `.elf`, `.bin`, `.hex`). The first build also compiles `picotool` and `pioasm` from source and installs the web guide's npm packages, which takes a minute.
+
+The firmware build runs `npm run build` in `web/` and embeds the result, so the guide is always up to date with the firmware. To build without Node.js, build the web guide elsewhere, copy `web/dist/index.html` into place and configure with `-DLTB_BUILD_WEB=OFF`.
 
 The board is set to `pico2_w` in [CMakeLists.txt](CMakeLists.txt). This firmware does not support the original Pico or Pico W (RP2040).
 
@@ -122,6 +169,10 @@ The picotool built by the SDK has no USB support. To flash over USB without pres
 picotool load -x -f build/logic_test_bench.uf2
 ```
 
+### Flash layout
+
+The firmware uses about 0.5 MB of the 4 MB flash. The **second-to-last 4 KB sector** holds the saved Wi-Fi network; flashing a new `.uf2` keeps it, so you don't need to set up Wi-Fi again after an update. (Not the last sector: every RP2350 `.uf2` includes a workaround block for boot ROM erratum RP2350-E10 that lands there and erases it.) The firmware refuses to start if it ever grows into the settings sector.
+
 ## USB serial console
 
 The board shows up as a USB CDC serial port, usually `/dev/ttyACM0`. Your user needs to be in the `dialout` group (`sudo usermod -aG dialout $USER`, then log out and back in).
@@ -130,13 +181,15 @@ The board shows up as a USB CDC serial port, usually `/dev/ttyACM0`. Your user n
 tio /dev/ttyACM0
 ```
 
-(`screen /dev/ttyACM0 115200` works too. The baud rate is ignored for USB serial.)
+(`screen /dev/ttyACM0 115200` works too. The baud rate is ignored for USB serial, except that opening the port at **1200 baud** reboots the Pico into BOOTSEL mode, ready for a new `.uf2`. That is handy for flashing without pressing the button: `stty -F /dev/ttyACM0 1200`.)
 
-When the terminal connects, the board prints a banner and a status table showing, for each pin, the requested and the actual frequency, duty cycle and peripheral. Commands:
+When the terminal connects, the board prints a banner with the Wi-Fi details and a status table showing, for each pin, the requested and the actual frequency, duty cycle and peripheral. Commands:
 
 | Key | Action |
 |---|---|
 | `s` | Print the status table |
+| `w` | Print the Wi-Fi status: hotspot or joined network, IP address and guide address |
+| `f` | Forget the saved Wi-Fi network (asks for `y` to confirm) and restart into the hotspot |
 | `h` | Print help |
 
 The firmware never waits for a terminal. Signals run whether or not a host is connected.
@@ -149,7 +202,47 @@ The timing math (cycle counts, PWM dividers, pattern encoding) is plain C++ in `
 cmake -S tests -B build-tests && cmake --build build-tests && ctest --test-dir build-tests --output-on-failure
 ```
 
-The tests also check the shipped defaults: every default must be valid, exact at 150 MHz, and free of pin or state machine conflicts.
+The tests also check the shipped defaults: every default must be valid, exact at 150 MHz, and free of pin or state machine conflicts. They also check that `web/src/data/signals.json` (the signal data the guide uses) matches the C++ config.
+
+The web guide has its own tests (signal drawing, analyzer limits, and that every lesson's settings are accepted by the analyzer):
+
+```bash
+npm --prefix web test
+```
+
+## Working on the web guide
+
+The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 23 KB gzipped).
+
+```bash
+npm --prefix web ci
+```
+
+```bash
+npm --prefix web run dev
+```
+
+That serves the guide at http://localhost:5173 with live reload, no board needed. The dev server also fakes the test bench's API (`web/dev/mockDevice.ts`), so the Wi-Fi page works too. Start it with `MOCK_MODE=joined`, `error` or `none` to see the other states. Lessons are data in `web/src/lessons/lessons.ts`. Analyzer app wording and limits live in `web/src/model/analyzer.ts`, so they are easy to correct for newer app versions.
+
+When you change `src/signal_config.h`, regenerate the guide's signal data:
+
+```bash
+./build-tests/export_signals web/src/data/signals.json
+```
+
+### Debugging the Wi-Fi guide
+
+If a phone joins but the guide does not appear, build with network logging. The firmware then prints every DNS query, TCP connection attempt and HTTP request on the serial console:
+
+```bash
+cmake -S . -B build-debug -G Ninja -DLTB_NET_DEBUG=ON
+```
+
+```bash
+cmake --build build-debug
+```
+
+Flash `build-debug/logic_test_bench.uf2`. The Wi-Fi line in the console banner ends with "(network debug logging on)" when the debug build is running.
 
 ## Timing and limitations
 
@@ -160,18 +253,31 @@ Short version: frequencies are exact multiples of the 150 MHz system clock, so a
 ```
 CMakeLists.txt            firmware build (Pico SDK)
 src/
-  main.cpp                set up all outputs, start them together, run console
+  main.cpp                set up all outputs, start them together, run Wi-Fi, console, BOOTSEL
   board_pins.h            GPIO allocation and reserved pin checks
   signal_config.h         default frequencies, duty cycles, pattern
   status.{h,cpp}          table of what each pin is doing, for the console
   core/timing.{h,cpp}     pure timing math, unit tested on the host
+  core/http_request.*     HTTP request parsing, form decoding, JSON escaping (host tested)
+  core/settings.*         saved Wi-Fi settings: validation and flash layout (host tested)
+  core/scan_list.*        Wi-Fi scan results, one row per network (host tested)
   hw/square_wave.pio      PIO program: square wave with any duty cycle
   hw/square_output.*      sets up one PIO state machine per square wave
   hw/pattern.pio          PIO program: plays (level, duration) segments
   hw/pattern_output.*     pattern encoding + chained DMA loop
   hw/pwm_output.*         PWM slice setup (duty pair, short pulse)
+  hw/settings_store.*     saved Wi-Fi settings in a reserved flash sector
+  hw/bootsel_button.*     reads BOOTSEL at runtime (hold 3 s, release: forget Wi-Fi)
   console/serial_console.* USB serial status and commands
+  net/wifi.*              joins the saved network, or runs the setup hotspot
+  net/http_server.*       web server: the guide, captive portal redirects, JSON API
+  net/lwipopts.h          lwIP config; net_debug_hooks.h for -DLTB_NET_DEBUG=ON
 tests/                    host unit tests (standalone CMake project)
+tools/export_signals.cpp  writes web/src/data/signals.json from the C++ config
+tools/prepare_web_content.py  gzips the guide into a C array for the web server
+web/                      the web guide (Preact + TypeScript + Vite)
+web/dev/mockDevice.ts     fake device API for the dev server, not part of the build
+third_party/pico-examples DHCP and DNS servers from the official examples
 docs/timing.md            precision, limits, sample rate guidance
 AGENTS.md                 development conventions
 ```
@@ -184,4 +290,6 @@ Planned modes, each as its own module under `src/protocols/`:
 - I2C controller traffic (tentative pins GP14/GP15)
 - SPI controller traffic (tentative pins GP16 to GP19)
 - Simulated Commodore 64 bus traffic (pins to be decided)
-- Runtime configuration over the serial console
+- More signals to learn from: WS2812 LED data, IR remote (NEC), servo PWM, quadrature encoder, 1-Wire, VGA sync timing
+- Named signal presets (for example a 24-channel test for the Verify track), selectable from the guide
+- A small USB drive next to the serial port, with `WIFI.TXT` to set the network before first boot and `STATUS.TXT` showing the IP address

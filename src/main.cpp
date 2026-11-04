@@ -1,16 +1,21 @@
 // Logic Analyzer Test Bench for the Raspberry Pi Pico 2 W (RP2350).
 //
-// Sets up every test signal, starts them together, then services the USB
-// serial console. After startup the CPU is not involved in generating any
-// signal: PIO, PWM and DMA run on their own.
+// Sets up every test signal, starts them together, then starts Wi-Fi (the
+// saved home network, or the setup hotspot) with the web guide. The main loop
+// services Wi-Fi, the USB serial console and the BOOTSEL button. The CPU is
+// not involved in generating any signal: PIO, PWM and DMA run on their own.
+
+#include <cstdio>
 
 #include "board_pins.h"
 #include "console/serial_console.h"
 #include "hardware/pio.h"
 #include "hardware/pwm.h"
+#include "hw/bootsel_button.h"
 #include "hw/pattern_output.h"
 #include "hw/pwm_output.h"
 #include "hw/square_output.h"
+#include "net/wifi.h"
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"
 #include "signal_config.h"
@@ -52,7 +57,43 @@ int main() {
     pwm_set_mask_enabled((1u << pair_slice) | (1u << pulse_slice));
     pio_enable_sm_multi_mask_in_sync(pio0, 0, sm_mask[0], sm_mask[1]);
 
+    // Wi-Fi comes last, so a radio problem can never delay or disturb the
+    // signals. It serves the web guide from flash; see src/net/wifi.h.
+    wifi_start();
+
+    // Holding BOOTSEL this long forgets the saved network and restarts into
+    // the setup hotspot. The restart waits for the button to be released: the
+    // boot ROM enters USB boot mode (the RP2350 drive) if BOOTSEL is still held
+    // at reset. The LED going off tells the user it is time to let go.
+    constexpr uint32_t kForgetHoldMs = 3000;
+    absolute_time_t pressed_since = nil_time;
+    bool warned = false;
+    bool armed = false;
+
     while (true) {
-        console_poll();
+        wifi_poll();
+        console_poll();  // Waits up to 100 ms for a key, which paces this loop.
+
+        if (bootsel_pressed()) {
+            if (is_nil_time(pressed_since)) {
+                pressed_since = get_absolute_time();
+            }
+            const int64_t held_ms = absolute_time_diff_us(pressed_since, get_absolute_time()) / 1000;
+            if (held_ms >= 500 && !warned) {
+                printf("BOOTSEL held: keep holding to forget the Wi-Fi network\n");
+                warned = true;
+            }
+            if (held_ms >= kForgetHoldMs && !armed) {
+                printf("Release BOOTSEL to forget the Wi-Fi network and restart\n");
+                wifi_set_led(false);
+                armed = true;
+            }
+        } else {
+            if (armed) {
+                wifi_forget_and_reboot();
+            }
+            pressed_since = nil_time;
+            warned = false;
+        }
     }
 }

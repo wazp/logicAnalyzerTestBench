@@ -3,3 +3,6 @@ build-*/
 .vscode/
 .cache/
 compile_commands.json
+web/node_modules/
+web/dist/
+.claude/
