@@ -14,8 +14,21 @@ describe('lessons', () => {
     expect(ids).toEqual(['uart', 'i2c', 'spi', 'ws2812', 'onewire', 'ir-remote', 'quadrature']);
   });
 
+  it('start with the concepts track', () => {
+    expect(lessons.slice(0, 5).map((l) => l.track)).toEqual(Array(5).fill('concepts'));
+  });
+
   for (const lesson of lessons) {
     describe(lesson.id, () => {
+      it('teaches something: explanation sections or a hands-on part', () => {
+        expect((lesson.sections?.length ?? 0) + lesson.parts.length).toBeGreaterThan(0);
+      });
+
+      it('wires pins only when it has a hands-on part', () => {
+        if (lesson.parts.length === 0) expect(lesson.gpios).toEqual([]);
+        else expect(lesson.gpios.length).toBeGreaterThan(0);
+      });
+
       it('never needs more inputs than a small analyzer has', () => {
         for (const part of lesson.parts) expect(part.settings.gpios.length).toBeLessThanOrEqual(minimumAnalyzer.inputs);
       });

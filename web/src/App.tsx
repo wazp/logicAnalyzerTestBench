@@ -34,6 +34,8 @@ function Nav({ route }: { route: string }) {
         Test Bench
       </a>
       {link('/', 'Start here')}
+      <div class="nav-group">Concepts</div>
+      {lessons.filter((l) => l.track === 'concepts').map((l) => link(`/lesson/${l.id}`, l.title))}
       <div class="nav-group">Learn</div>
       {lessons.filter((l) => l.track === 'learn').map((l) => link(`/lesson/${l.id}`, l.title))}
       <div class="nav-group">Protocols</div>

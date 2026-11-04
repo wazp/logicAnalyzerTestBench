@@ -6,7 +6,7 @@
 // analyzer can do all of them. Larger analyzers simply have room to spare.
 
 import { shortLabel } from './board';
-import { formatRate } from './format';
+import { formatRate, formatTime } from './format';
 
 export const minimumAnalyzer = {
   inputs: 8,
@@ -16,7 +16,9 @@ export const minimumAnalyzer = {
 export type Trigger =
   | { type: 'edge'; gpio: number; edge: 'rising' | 'falling' }
   /** All listed pins at the given levels at the same time ("pattern" or "condition" trigger). */
-  | { type: 'pattern'; levels: { gpio: number; level: 0 | 1 }[] };
+  | { type: 'pattern'; levels: { gpio: number; level: 0 | 1 }[] }
+  /** A pulse at `level` lasting longer and/or shorter than the given times ("pulse width" trigger). */
+  | { type: 'pulse'; gpio: number; level: 0 | 1; longerThanNs?: number; shorterThanNs?: number };
 
 export interface CaptureSettings {
   /** Signals to record, by Pico pin. Connect each to any free analyzer input. */
@@ -53,7 +55,10 @@ export function validateSettings(s: CaptureSettings): string[] {
   }
   if (s.durationNs <= 0 || s.preTriggerNs < 0) issues.push('Capture length must be positive.');
   const t = s.trigger;
-  const triggerPins = t.type === 'edge' ? [t.gpio] : t.levels.map((l) => l.gpio);
+  const triggerPins = t.type === 'pattern' ? t.levels.map((l) => l.gpio) : [t.gpio];
+  if (t.type === 'pulse' && t.longerThanNs === undefined && t.shorterThanNs === undefined) {
+    issues.push('A pulse width trigger needs a minimum or maximum width.');
+  }
   for (const g of triggerPins) {
     if (!s.gpios.includes(g)) issues.push(`Trigger uses GP${g}, which is not recorded.`);
   }
@@ -64,6 +69,13 @@ export function validateSettings(s: CaptureSettings): string[] {
 export function describeTrigger(t: Trigger): string {
   if (t.type === 'edge') {
     return `${t.edge === 'rising' ? 'Rising' : 'Falling'} edge on GP${t.gpio} (${shortLabel(t.gpio)})`;
+  }
+  if (t.type === 'pulse') {
+    const limits = [
+      t.longerThanNs !== undefined ? `longer than ${formatTime(t.longerThanNs)}` : '',
+      t.shorterThanNs !== undefined ? `shorter than ${formatTime(t.shorterThanNs)}` : '',
+    ].filter(Boolean);
+    return `GP${t.gpio} ${t.level ? 'high' : 'low'} pulse ${limits.join(' and ')}`;
   }
   return t.levels.map((l) => `GP${l.gpio} ${l.level ? 'high' : 'low'}`).join(' and ');
 }

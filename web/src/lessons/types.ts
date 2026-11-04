@@ -41,21 +41,36 @@ export interface Check {
   expected: string;
 }
 
-/** A small reference table, e.g. the bytes a protocol transaction carries. */
+/** A small reference table, e.g. the bytes a protocol transaction carries. Cells support the inline markers. */
 export interface FactTable {
   title: string;
   head: string[];
   rows: string[][];
 }
 
+/** Diagrams a section can show. */
+export type Figure = 'thresholds';
+
+/** An explanation section: paragraphs, then optional bullets, a table or a figure. */
+export interface Section {
+  title: string;
+  body: string[];
+  bullets?: string[];
+  table?: FactTable;
+  figure?: Figure;
+}
+
 export interface Lesson {
   id: string;
-  track: 'learn' | 'protocols' | 'verify';
+  track: 'concepts' | 'learn' | 'protocols' | 'verify';
   title: string;
   summary: string;
-  /** Pico pins to wire up, each to any free analyzer input. */
+  /** Pico pins to wire up, each to any free analyzer input. Empty for a reading-only lesson. */
   gpios: number[];
   intro: string;
+  /** Explanation, shown before any hands-on part. */
+  sections?: Section[];
+  /** Hands-on captures. May be empty for a reading-only lesson. */
   parts: Part[];
   questions: Question[];
   tables?: FactTable[];

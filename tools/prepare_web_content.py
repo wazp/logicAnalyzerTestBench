@@ -4,7 +4,7 @@
 Input:  web/dist/index.html (one self-contained file, built by Vite)
 Output: web_page.inc, included by src/net/http_server.cpp
 
-The page is gzip compressed (about 35 KB instead of 100 KB) and served as is
+The page is gzip compressed (about 43 KB instead of 124 KB) and served as is
 with "Content-Encoding: gzip"; every browser decompresses it. The server
 writes the HTTP headers itself, so only the body is stored here.
 

@@ -2,8 +2,9 @@ import { Checklist } from '../components/Checklist';
 import { PinDiagram } from '../components/PinDiagram';
 import { Rich } from '../components/Rich';
 import { SettingsCard } from '../components/SettingsCard';
+import { ThresholdDiagram } from '../components/ThresholdDiagram';
 import { ViewTabs } from '../components/ViewTabs';
-import { lessons, type FactTable, type Lesson } from '../lessons';
+import { lessons, type FactTable, type Lesson, type Section } from '../lessons';
 import { signalColor, signalName } from '../model/board';
 import { physicalPinForGpio } from '../model/pico';
 
@@ -57,7 +58,9 @@ function Table({ table }: { table: FactTable }) {
             {table.rows.map((r, i) => (
               <tr key={i}>
                 {r.map((c, j) => (
-                  <td key={j}>{c}</td>
+                  <td key={j}>
+                    <Rich text={c} />
+                  </td>
                 ))}
               </tr>
             ))}
@@ -68,7 +71,55 @@ function Table({ table }: { table: FactTable }) {
   );
 }
 
+function ConceptSection({ section }: { section: Section }) {
+  return (
+    <section class="concept-section">
+      <h2>{section.title}</h2>
+      {section.body.map((p) => (
+        <p key={p}>
+          <Rich text={p} />
+        </p>
+      ))}
+      {section.bullets && (
+        <ul>
+          {section.bullets.map((b) => (
+            <li key={b}>
+              <Rich text={b} />
+            </li>
+          ))}
+        </ul>
+      )}
+      {section.figure === 'thresholds' && <ThresholdDiagram />}
+      {section.table && (
+        <div class="table-scroll">
+          <table class="fact-table">
+            <thead>
+              <tr>
+                {section.table.head.map((h) => (
+                  <th key={h}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {section.table.rows.map((r, i) => (
+                <tr key={i}>
+                  {r.map((c, j) => (
+                    <td key={j}>
+                      <Rich text={c} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 const trackLabel: Record<Lesson['track'], string> = {
+  concepts: 'Concepts',
   learn: 'Learn',
   protocols: 'Protocols',
   verify: 'Verify your analyzer',
@@ -98,13 +149,17 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
         <Rich text={lesson.intro} />
       </p>
 
-      <section class="wiring-section">
-        <h2>Wiring</h2>
-        <div class="wiring-grid">
-          <PinDiagram gpios={lesson.gpios} />
-          <WiringTable gpios={lesson.gpios} />
-        </div>
-      </section>
+      {lesson.sections?.map((sec) => <ConceptSection key={sec.title} section={sec} />)}
+
+      {lesson.gpios.length > 0 && (
+        <section class="wiring-section">
+          <h2>Wiring</h2>
+          <div class="wiring-grid">
+            <PinDiagram gpios={lesson.gpios} />
+            <WiringTable gpios={lesson.gpios} />
+          </div>
+        </section>
+      )}
 
       {lesson.parts.map((part) => (
         <section key={part.title} class="part">

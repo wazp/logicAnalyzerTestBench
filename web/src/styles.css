@@ -834,3 +834,53 @@ button.button {
   font-weight: 600;
   overflow-wrap: anywhere;
 }
+
+/* ---------- Concept lessons ---------- */
+
+.threshold-diagram svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.th-band {
+  fill: var(--warn-bg);
+}
+
+.th-rail,
+.th-limit {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.th-limit {
+  stroke-dasharray: 4 4;
+  stroke: var(--muted);
+}
+
+.th-threshold {
+  stroke: var(--trigger);
+  stroke-width: 1.5;
+}
+
+.th-analog {
+  fill: none;
+  stroke: var(--ch6);
+  stroke-width: 2;
+}
+
+.th-digital {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.th-label,
+.th-note {
+  font-size: 12px;
+  fill: var(--muted);
+}
+
+.concept-section ul {
+  margin-top: 0.5rem;
+}

@@ -100,6 +100,7 @@ The lessons work with **any logic analyzer and any software** (the analyzer's ow
 
 | Track | Lessons |
 |---|---|
+| Concepts | How a logic analyzer works, voltage levels and thresholds (3.3V, 5V, VREF), the words analyzers use, triggers, common gotchas |
 | Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers |
 | Protocols | UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder |
 | Verify | Sanity check of every analyzer input with a pass/fail checklist |
@@ -237,7 +238,7 @@ npm --prefix web test
 
 ## Working on the web guide
 
-The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 35 KB gzipped).
+The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 43 KB gzipped).
 
 ```bash
 npm --prefix web ci
@@ -247,7 +248,7 @@ npm --prefix web ci
 npm --prefix web run dev
 ```
 
-That serves the guide at http://localhost:5173 with live reload, no board needed. The dev server also fakes the test bench's API (`web/dev/mockDevice.ts`), so the Wi-Fi page works too. Start it with `MOCK_MODE=joined`, `error` or `none` to see the other states. Lessons are data, one file per lesson in `web/src/lessons/` (`basics/`, `protocols/`, `verify/`), listed in guide order in `web/src/lessons/index.ts`. The limits every lesson must stay within (8 inputs, 24 MS/s) live in `web/src/model/capture.ts`.
+That serves the guide at http://localhost:5173 with live reload, no board needed. The dev server also fakes the test bench's API (`web/dev/mockDevice.ts`), so the Wi-Fi page works too. Start it with `MOCK_MODE=joined`, `error` or `none` to see the other states. Lessons are data, one file per lesson in `web/src/lessons/` (`concepts/`, `basics/`, `protocols/`, `verify/`), listed in guide order in `web/src/lessons/index.ts`. The limits every lesson must stay within (8 inputs, 24 MS/s) live in `web/src/model/capture.ts`.
 
 When you change `src/signal_config.h`, regenerate the guide's signal data (the host tests fail until you do):
 
