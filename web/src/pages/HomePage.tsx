@@ -1,4 +1,5 @@
 import { PinDiagram } from '../components/PinDiagram';
+import { useDeviceStatus } from '../components/useDeviceStatus';
 import { channelColor } from '../components/channel';
 import { lessons } from '../lessons/lessons';
 import { analyzer } from '../model/analyzer';
@@ -8,8 +9,15 @@ import { channelForGpio, clkSysHz, periodNs, signals } from '../model/signals';
 
 export function HomePage() {
   const first = lessons[0];
+  const [device] = useDeviceStatus();
+  const onHotspot = !device.loading && device.status?.mode === 'setup';
   return (
     <article class="home">
+      {onHotspot && (
+        <a class="wifi-banner" href="#/wifi">
+          <strong>Use the guide from your computer:</strong> connect the test bench to your Wi-Fi →
+        </a>
+      )}
       <header>
         <div class="eyebrow">Start here</div>
         <h1>Learn your logic analyzer</h1>

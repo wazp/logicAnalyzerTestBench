@@ -33,11 +33,17 @@ option(LTB_BUILD_WEB "Build the web guide with npm as part of the firmware build
 
 add_executable(logic_test_bench
     src/main.cpp
-    src/net/wifi_ap.cpp
+    src/net/wifi.cpp
+    src/net/http_server.cpp
     third_party/pico-examples/dhcpserver/dhcpserver.c
     third_party/pico-examples/dnsserver/dnsserver.c
     src/status.cpp
     src/core/timing.cpp
+    src/core/http_request.cpp
+    src/core/settings.cpp
+    src/core/scan_list.cpp
+    src/hw/settings_store.cpp
+    src/hw/bootsel_button.cpp
     src/hw/square_output.cpp
     src/hw/pattern_output.cpp
     src/hw/pwm_output.cpp
@@ -56,8 +62,10 @@ target_include_directories(logic_test_bench PRIVATE
 
 # Warnings only for our own sources, not the SDK.
 set_source_files_properties(
-    src/main.cpp src/status.cpp src/core/timing.cpp src/hw/square_output.cpp
-    src/hw/pattern_output.cpp src/hw/pwm_output.cpp src/console/serial_console.cpp src/net/wifi_ap.cpp
+    src/main.cpp src/status.cpp src/core/timing.cpp src/core/http_request.cpp src/core/settings.cpp
+    src/core/scan_list.cpp src/hw/settings_store.cpp src/hw/bootsel_button.cpp src/hw/square_output.cpp
+    src/hw/pattern_output.cpp src/hw/pwm_output.cpp src/console/serial_console.cpp src/net/wifi.cpp
+    src/net/http_server.cpp
     PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra"
 )
 
@@ -68,8 +76,9 @@ target_link_libraries(logic_test_bench
     hardware_pwm
     hardware_dma
     hardware_clocks
+    pico_flash                                  # flash_safe_execute, for the saved Wi-Fi settings
     pico_cyw43_arch_lwip_threadsafe_background  # Wi-Fi + lwIP, serviced in the background by interrupts
-    pico_lwip_http
+    pico_lwip_mdns                              # testbench-xxxx.local on a home network
 )
 
 # Access point address. Must match kApAddress in src/net/wifi_config.h, which
@@ -77,8 +86,9 @@ target_link_libraries(logic_test_bench
 set(LTB_AP_ADDRESS 4.3.2.1)
 pico_configure_ip4_address(logic_test_bench PRIVATE CYW43_DEFAULT_IP_AP_ADDRESS ${LTB_AP_ADDRESS})
 
-# Logs DNS queries and HTTP requests to the serial console, for debugging
-# what phones ask the captive portal. See src/net/lwipopts.h.
+# Logs DNS queries, TCP connection attempts and HTTP requests to the serial
+# console, for debugging what phones ask the captive portal. See
+# src/net/lwipopts.h.
 option(LTB_NET_DEBUG "Log DNS and HTTP traffic to the serial console" OFF)
 if (LTB_NET_DEBUG)
     target_compile_definitions(logic_test_bench PRIVATE LTB_NET_DEBUG)
@@ -105,18 +115,18 @@ elseif (NOT EXISTS ${WEB_DIST})
     message(FATAL_ERROR "LTB_BUILD_WEB is OFF but ${WEB_DIST} does not exist. Run 'npm ci && npm run build' in web/.")
 endif()
 
-# Compress the page and turn it into lwIP flash data (pico_fsdata.inc,
-# included through HTTPD_FSDATA_FILE in src/net/lwipopts.h).
+# Compress the page into a C array (web_page.inc, included by
+# src/net/http_server.cpp).
 set(WEB_CONTENT_DIR ${CMAKE_CURRENT_BINARY_DIR}/web_content)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_custom_command(
-    OUTPUT ${WEB_CONTENT_DIR}/pico_fsdata.inc
+    OUTPUT ${WEB_CONTENT_DIR}/web_page.inc
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/tools/prepare_web_content.py
-        ${WEB_DIST} ${WEB_CONTENT_DIR}/pico_fsdata.inc ${LTB_AP_ADDRESS}
+        ${WEB_DIST} ${WEB_CONTENT_DIR}/web_page.inc
     DEPENDS ${WEB_DIST} ${CMAKE_CURRENT_LIST_DIR}/tools/prepare_web_content.py
     COMMENT "Embedding web guide"
     VERBATIM)
-add_custom_target(web_content DEPENDS ${WEB_CONTENT_DIR}/pico_fsdata.inc)
+add_custom_target(web_content DEPENDS ${WEB_CONTENT_DIR}/web_page.inc)
 add_dependencies(logic_test_bench web_content)
 target_include_directories(logic_test_bench PRIVATE ${WEB_CONTENT_DIR})
 
@@ -126,6 +136,6 @@ pico_enable_stdio_uart(logic_test_bench 0)
 
 pico_set_program_name(logic_test_bench "logic_test_bench")
 pico_set_program_description(logic_test_bench "Programmable digital test signal generator for logic analyzers")
-pico_set_program_version(logic_test_bench "0.2.1")
+pico_set_program_version(logic_test_bench "0.3.0")
 
 pico_add_extra_outputs(logic_test_bench)

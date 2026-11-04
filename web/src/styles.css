@@ -676,3 +676,161 @@ th {
   text-decoration: none;
   font-weight: 600;
 }
+
+/* ---------- Wi-Fi settings ---------- */
+
+button.button {
+  font: inherit;
+  border: 1px solid var(--accent);
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.button.danger {
+  background: var(--fail);
+  border-color: var(--fail);
+  color: var(--surface);
+}
+
+.wifi-banner {
+  display: block;
+  margin-bottom: 1.5rem;
+  padding: 12px 16px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.wifi-status {
+  margin-top: 1rem;
+}
+
+.wifi-error {
+  color: var(--fail);
+  margin: 10px 0 0;
+}
+
+.network-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.network-list li + li {
+  border-top: 1px solid var(--border);
+}
+
+.network-list li.selected {
+  background: var(--surface-2);
+}
+
+.network-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.network-name {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.signal-bars {
+  width: 18px;
+  height: 14px;
+  flex: none;
+}
+
+.signal-bars rect {
+  fill: var(--border);
+}
+
+.signal-bars rect.on {
+  fill: var(--accent);
+}
+
+.lock {
+  width: 12px;
+  height: 14px;
+  flex: none;
+  fill: var(--muted);
+  stroke: var(--muted);
+  stroke-width: 1.4;
+}
+
+.join-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 16px 16px;
+}
+
+.settings-card .join-form {
+  padding: 0;
+}
+
+.join-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.join-form input {
+  font: inherit;
+  font-size: 1rem;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  min-width: 0;
+  flex: 1;
+}
+
+.join-form .button {
+  align-self: flex-start;
+}
+
+.password-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.link-button {
+  font: inherit;
+  font-size: 0.9rem;
+  background: none;
+  border: 0;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.wifi-done h2 {
+  margin-top: 0;
+}
+
+.big-link {
+  font-size: 1.25rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}

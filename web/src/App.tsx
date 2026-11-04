@@ -2,6 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { lessonById, lessons } from './lessons/lessons';
 import { HomePage } from './pages/HomePage';
 import { LessonPage } from './pages/LessonPage';
+import { WifiPage } from './pages/WifiPage';
 
 // Hash routing (#/lesson/<id>) keeps this a single static file that works
 // from the Pico's web server, a local file, or any static host.
@@ -37,6 +38,8 @@ function Nav({ route }: { route: string }) {
       {lessons.filter((l) => l.track === 'learn').map((l) => link(`/lesson/${l.id}`, l.title))}
       <div class="nav-group">Verify</div>
       {lessons.filter((l) => l.track === 'verify').map((l) => link(`/lesson/${l.id}`, l.title))}
+      <div class="nav-group">Settings</div>
+      {link('/wifi', 'Wi-Fi')}
     </nav>
   );
 }
@@ -48,7 +51,7 @@ export function App() {
   return (
     <div class="layout">
       <Nav route={route} />
-      <main>{lesson ? <LessonPage lesson={lesson} /> : <HomePage />}</main>
+      <main>{lesson ? <LessonPage lesson={lesson} /> : route === '/wifi' ? <WifiPage /> : <HomePage />}</main>
     </div>
   );
 }

@@ -3,17 +3,20 @@
 #include <cstdio>
 
 #include "hardware/clocks.h"
-#include "net/wifi_ap.h"
+#include "net/wifi.h"
 #include "pico/stdlib.h"
 #include "status.h"
 
 namespace {
 
 bool was_connected = false;
+bool confirm_forget = false;  // 'f' was pressed, waiting for 'y'.
 
 void print_help() {
     printf("Commands:\n");
     printf("  s   print signal status table\n");
+    printf("  w   print Wi-Fi status (network, IP address, guide address)\n");
+    printf("  f   forget the saved Wi-Fi network and restart into the setup hotspot\n");
     printf("  h   print this help\n");
 }
 
@@ -38,12 +41,16 @@ void print_status() {
     printf("\n");
 }
 
+void print_wifi() {
+    char line[192];
+    wifi_status_line(line, sizeof(line));
+    printf("%s\n", line);
+}
+
 void print_banner() {
     printf("\n=== Logic Analyzer Test Bench (Pico 2 W) ===\n");
     printf("All outputs are 3.3V and run in hardware (PIO/PWM/DMA).\n");
-    char wifi[128];
-    wifi_ap_status(wifi, sizeof(wifi));
-    printf("%s\n", wifi);
+    print_wifi();
     print_status();
     print_help();
 }
@@ -61,12 +68,29 @@ void console_poll() {
     was_connected = connected;
 
     const int c = getchar_timeout_us(100 * 1000);
+    if (confirm_forget && c != PICO_ERROR_TIMEOUT && c != '\r' && c != '\n') {
+        confirm_forget = false;
+        if (c == 'y' || c == 'Y') {
+            wifi_forget_and_reboot();
+        }
+        printf("Kept the saved network.\n");
+        return;
+    }
     switch (c) {
         case PICO_ERROR_TIMEOUT:
             break;
         case 's':
         case 'S':
             print_status();
+            break;
+        case 'w':
+        case 'W':
+            print_wifi();
+            break;
+        case 'f':
+        case 'F':
+            printf("Forget the saved Wi-Fi network and restart? Press y to confirm, any other key to cancel.\n");
+            confirm_forget = true;
             break;
         case 'h':
         case 'H':

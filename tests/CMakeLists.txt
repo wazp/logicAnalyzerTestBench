@@ -1,4 +1,4 @@
-# Host-side unit tests for the pure timing code in src/core.
+# Host-side unit tests for the pure code in src/core.
 # Builds with the normal host compiler, no Pico SDK needed:
 #   cmake -S tests -B build-tests && cmake --build build-tests && ctest --test-dir build-tests
 
@@ -14,7 +14,11 @@ add_executable(timing_tests
     test_main.cpp
     test_timing.cpp
     test_config.cpp
+    test_net.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/timing.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/http_request.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/settings.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/scan_list.cpp
 )
 target_include_directories(timing_tests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src)
 target_compile_options(timing_tests PRIVATE -Wall -Wextra -Werror)
