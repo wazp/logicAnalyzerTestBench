@@ -11,21 +11,31 @@
 namespace {
 
 constexpr size_t kMaxSegments = 64;
+constexpr size_t kMaxPatterns = 2;  // GP9 and GP26.
 
-// Encoded pattern words. The data DMA channel streams these into the PIO.
-uint32_t pattern_words[kMaxSegments];
+struct Player {
+    // Encoded pattern words. The data DMA channel streams these into the PIO.
+    uint32_t words[kMaxSegments];
+    // The control DMA channel copies this pointer into the data channel's read
+    // address (and triggers it) each time the data channel finishes a pass.
+    const uint32_t* start;
+};
 
-// The control DMA channel copies this pointer into the data channel's read
-// address (and triggers it) each time the data channel finishes a pass.
-const uint32_t* pattern_start = pattern_words;
+Player players[kMaxPatterns];
+size_t player_count = 0;
 
 }  // namespace
 
 void pattern_output_init(unsigned pin, const char* name, unsigned pio_index, unsigned sm,
                          const timing::PatternSegment* segments, size_t segment_count) {
+    if (player_count == kMaxPatterns) {
+        panic("GP%u (%s): more than %u patterns", pin, name, static_cast<unsigned>(kMaxPatterns));
+    }
+    Player& p = players[player_count++];
+    p.start = p.words;
+
     const uint32_t sys_hz = clock_get_hz(clk_sys);
-    const timing::PatternEncoding e =
-        timing::encode_pattern(sys_hz, segments, segment_count, pattern_words, kMaxSegments);
+    const timing::PatternEncoding e = timing::encode_pattern(sys_hz, segments, segment_count, p.words, kMaxSegments);
     if (!e.valid) {
         panic("GP%u (%s): %s", pin, name, e.error);
     }
@@ -47,7 +57,7 @@ void pattern_output_init(unsigned pin, const char* name, unsigned pio_index, uns
     pio_sm_set_pins_with_mask(pio, sm, 0, 1u << pin);
 
     // --- DMA loop: streams the words forever ---
-    dma_loop_start(pio, sm, pattern_words, e.word_count, &pattern_start);
+    dma_loop_start(pio, sm, p.words, e.word_count, &p.start);
 
     SignalStatus s = {};
     s.pin = pin;
@@ -57,8 +67,8 @@ void pattern_output_init(unsigned pin, const char* name, unsigned pio_index, uns
     s.actual_hz = static_cast<double>(sys_hz) / static_cast<double>(e.total_cycles);
     uint64_t high_cycles = 0;
     for (size_t i = 0; i < e.word_count; ++i) {
-        if (pattern_words[i] & 1u) {
-            high_cycles += (pattern_words[i] >> 1) + timing::kPatternSegmentOverheadCycles;
+        if (p.words[i] & 1u) {
+            high_cycles += (p.words[i] >> 1) + timing::kPatternSegmentOverheadCycles;
         }
     }
     s.duty_percent = 100.0 * static_cast<double>(high_cycles) / static_cast<double>(e.total_cycles);

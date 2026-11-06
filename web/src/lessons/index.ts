@@ -10,8 +10,10 @@ import { aliasing } from './basics/aliasing';
 import { captureWindowLesson } from './basics/capture-window';
 import { dutyCycle } from './basics/duty-cycle';
 import { firstCapture } from './basics/first-capture';
+import { isItAlive } from './basics/is-it-alive';
 import { patternTrigger } from './basics/pattern-trigger';
 import { rareEvent } from './basics/rare-event';
+import { switchBounce } from './basics/switch-bounce';
 import { gotchas } from './concepts/gotchas';
 import { howItWorks } from './concepts/how-it-works';
 import { triggers } from './concepts/triggers';
@@ -36,13 +38,15 @@ export const lessons: Lesson[] = [
   vocabulary,
   triggers,
   gotchas,
-  // Learn: the basics, on GP0-GP9.
+  // Learn: the basics, on GP0-GP9 and the GP26 button.
   firstCapture,
   aliasing,
   captureWindowLesson,
   dutyCycle,
   rareEvent,
   patternTrigger,
+  isItAlive,
+  switchBounce,
   // Protocols, on GP10-GP22.
   uart,
   i2c,

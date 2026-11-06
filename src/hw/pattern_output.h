@@ -1,5 +1,6 @@
 // Irregular repeating pattern on PIO (pattern.pio), fed by two chained DMA
-// channels so it loops forever with no CPU involvement.
+// channels so it loops forever with no CPU involvement. Used for GP9 and the
+// GP26 bouncing button; each call sets up one more pin.
 
 #pragma once
 

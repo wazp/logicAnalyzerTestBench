@@ -3,7 +3,7 @@
 // then chains to a control channel that rewinds the data channel's read
 // address and restarts it.
 //
-// Used by the GP9 pattern and the GP10-GP22 protocol timeline.
+// Used by the GP9 and GP26 patterns and the GP10-GP22 protocol timeline.
 
 #pragma once
 

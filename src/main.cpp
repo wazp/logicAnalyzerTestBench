@@ -45,12 +45,13 @@ bi_decl(bi_1pin_with_name(pins::kOneWire, "1-Wire"));
 bi_decl(bi_1pin_with_name(pins::kIrRemote, "IR remote (NEC)"));
 bi_decl(bi_1pin_with_name(pins::kQuadratureA, "Quadrature A"));
 bi_decl(bi_1pin_with_name(pins::kQuadratureB, "Quadrature B"));
+bi_decl(bi_1pin_with_name(pins::kBounce, "Bouncing button"));
 
 int main() {
     stdio_init_all();
 
     // --- Configure everything while stopped ---
-    uint32_t sm_mask[2] = {0, 0};  // Enabled state machines per PIO block.
+    uint32_t sm_mask[3] = {0, 0, 0};  // Enabled state machines per PIO block.
     for (const auto& sq : config::kSquareSignals) {
         square_output_init(sq);
         sm_mask[sq.pio_index] |= 1u << sq.sm;
@@ -59,6 +60,9 @@ int main() {
     pattern_output_init(pins::kPattern, config::kPatternName, config::kPatternPioIndex, config::kPatternSm,
                         config::kPatternSegments, config::kPatternSegmentCount);
     sm_mask[config::kPatternPioIndex] |= 1u << config::kPatternSm;
+    pattern_output_init(pins::kBounce, config::kBounceName, config::kBouncePioIndex, config::kBounceSm,
+                        config::kBounceSegments, config::kBounceSegmentCount);
+    sm_mask[config::kBouncePioIndex] |= 1u << config::kBounceSm;
 
     // Protocol signals on GP10-GP22, one state machine for all of them.
     timeline_output_init(config::kTimelinePioIndex, config::kTimelineSm);
@@ -68,12 +72,13 @@ int main() {
     const unsigned pulse_slice = pwm_output_init_pulse(config::kPulse);
 
     // --- Start ---
-    // Both PWM slices start on the same cycle. The PIO state machines in PIO0
-    // and PIO1 then start together on one later cycle, so all square waves,
-    // the pattern and the protocol frame share t = 0. PWM and PIO are not cycle
+    // Both PWM slices start on the same cycle. The PIO state machines in all
+    // three PIO blocks then start together on one later cycle (PIO1 enables
+    // its neighbors PIO0 and PIO2 in the same write), so all square waves, both
+    // patterns and the protocol frame share t = 0. PWM and PIO are not cycle
     // aligned with each other (a few cycles apart).
     pwm_set_mask_enabled((1u << pair_slice) | (1u << pulse_slice));
-    pio_enable_sm_multi_mask_in_sync(pio0, 0, sm_mask[0], sm_mask[1]);
+    pio_enable_sm_multi_mask_in_sync(pio1, sm_mask[0], sm_mask[1], sm_mask[2]);
 
     // Wi-Fi comes last, so a radio problem can never delay or disturb the
     // signals. It serves the web guide from flash; see src/net/wifi.h.

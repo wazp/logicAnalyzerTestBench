@@ -8,7 +8,7 @@ Everything is derived from `clk_sys`, which the Pico SDK sets to **150 MHz** on 
 
 **Jitter** is effectively zero. No signal depends on interrupts, timers or CPU code after startup. Edges always land on a `clk_sys` edge.
 
-**Wi-Fi does not affect the signals.** The radio and web server run on the CPU and in PIO2, while the signals run in PIO0, PIO1, the PWM slices and their own DMA channels. Wi-Fi starts only after the signals are running, and if it fails the signals keep going.
+**Wi-Fi does not affect the signals.** The radio and web server run on the CPU and in one PIO2 state machine, while the signals run in PIO0, PIO1, PIO2 SM0, the PWM slices and their own DMA channels. Wi-Fi starts only after the signals are running, and if it fails the signals keep going.
 
 ## Square waves (GP0 to GP5): PIO
 
@@ -48,7 +48,7 @@ Lowest PWM frequency is about 9 Hz (divider 255). For slower signals, use a PIO 
 
 The default GP8 pulse is 1 us wide (50 counts at 50 MHz), exact. Pulse widths are rounded to the counter clock, and a width too short to resolve is clamped to one count so the pulse never disappears.
 
-## Irregular pattern (GP9): PIO plus DMA
+## Irregular patterns (GP9 and GP26): PIO plus DMA
 
 Program: [src/hw/pattern.pio](../src/hw/pattern.pio). The pattern is a list of `(level, duration)` segments in [src/signal_config.h](../src/signal_config.h). Each segment becomes one 32-bit word:
 
@@ -66,7 +66,7 @@ Two chained DMA channels stream the words into the state machine forever: the da
 | Maximum segments | 64 (buffer size in pattern_output.cpp) |
 | Segment resolution | 1 cycle (6.67 ns) |
 
-Durations are given in nanoseconds and rounded to the nearest cycle. The default pattern is exactly 150,000 cycles (1 ms).
+Durations are given in nanoseconds and rounded to the nearest cycle. The default GP9 pattern is exactly 150,000 cycles (1 ms). The GP26 bouncing button uses the same player on PIO2 SM0 with its own buffer and DMA channels: 16 segments, exactly 75,000,000 cycles (500 ms), shortest segment 2 µs.
 
 The timing assumes the TX FIFO never runs dry. With an 8-entry FIFO and DMA refilling it, this holds for any realistic pattern. A pattern made entirely of minimum-length 20 ns segments would be the stress case and has not been measured on hardware.
 
@@ -94,7 +94,7 @@ Recommended sample rates for every protocol are in its lesson. All of them stay 
 
 ## Start alignment
 
-All PIO state machines (PIO0 and PIO1) are enabled on the same clock cycle with `pio_enable_sm_multi_mask_in_sync`, so the square waves, the pattern and the protocol frame share t = 0. The two PWM slices start together on an earlier cycle. PWM and PIO edges are therefore offset by a few cycles (tens of nanoseconds), which is fine for learning but visible at very high sample rates.
+All signal state machines (PIO0, PIO1 and PIO2 SM0) are enabled on the same clock cycle: `pio_enable_sm_multi_mask_in_sync` on PIO1 also enables its neighbors PIO0 and PIO2 in the same register write. So the square waves, both patterns and the protocol frame share t = 0. The two PWM slices start together on an earlier cycle. PWM and PIO edges are therefore offset by a few cycles (tens of nanoseconds), which is fine for learning but visible at very high sample rates.
 
 ## Choosing an analyzer sample rate
 
@@ -107,6 +107,7 @@ Rule of thumb: sample at least 4 times faster than the fastest signal you look a
 | GP5 (100 kHz) | 1 MS/s | 4 MS/s or more |
 | GP8 1 us pulse | 4 MS/s | 16 MS/s or more |
 | GP9 1 us segments | 4 MS/s | 16 MS/s or more |
+| GP26 bounce, 2 us spikes | 1 MS/s | 4 MS/s or more |
 
 To see the full 1 Hz period on GP0 you need a capture at least 1 s long, so combine a long capture with a moderate sample rate, or use the analyzer's compressed/streaming mode if it has one.
 
@@ -116,5 +117,5 @@ A common exercise: capture GP5 (100 kHz) at 200 kS/s and watch it alias. Then ra
 
 - **5V systems (C64):** The Commodore 64 bus is 5V TTL. 3.3V outputs are usually read as high by TTL inputs (threshold about 2.0V), but anything driving back into the Pico must be level shifted. Plan for level shifters before connecting to real hardware.
 - **RP2350 erratum E9:** GPIO inputs with the internal pull-down enabled can latch high. It does not affect outputs, but matters once inputs are added (for example clock inputs or bus snooping). Use external pull-downs if needed.
-- **PIO capacity:** PIO0 and PIO1 are full (4 state machines each; PIO1 SM3 plays the protocol timeline). The CYW43 Wi-Fi driver takes the first PIO with a free state machine, which is therefore PIO2. PIO2 has three state machines left.
-- **More protocols** don't need more state machines: add an encoder in `src/core/protocols/` and a slot in the protocol frame. Only signals that must run independently of the 120 ms frame (for example VGA video) need their own state machine or a preset that replaces the frame.
+- **PIO capacity:** PIO0 and PIO1 are full (4 state machines each; PIO1 SM3 plays the protocol timeline). PIO2 SM0 plays the GP26 button. The CYW43 Wi-Fi driver takes the first PIO with a free state machine, which is therefore PIO2 (SM1, 7 instructions). PIO2 has two state machines left after that.
+- **More protocols** don't need more state machines: add an encoder in `src/core/protocols/` and a slot in the protocol frame. They do need pins, though, and all 13 timeline pins are taken; the timeline cannot grow past GP22 because GP23 to GP25 belong to the Wi-Fi chip. Only signals that must run independently of the 120 ms frame (for example VGA video) need their own state machine or a preset that replaces the frame.

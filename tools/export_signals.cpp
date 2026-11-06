@@ -50,6 +50,34 @@ void write_signal_head(FILE* f, bool first, unsigned gpio, const char* name, con
     std::fprintf(f, "      \"dutyPercent\": %.9g,\n", duty);
 }
 
+// A segment pattern played by pattern.pio. Returns false (after printing why) if it does not encode.
+bool write_pattern(FILE* f, unsigned gpio, const char* name, const char* kind, unsigned pio_index, unsigned sm,
+                   const timing::PatternSegment* pattern, size_t count) {
+    constexpr size_t kMaxSegments = 64;  // As in src/hw/pattern_output.cpp.
+    uint32_t words[kMaxSegments];
+    const auto e = timing::encode_pattern(kSysHz, pattern, count, words, kMaxSegments);
+    if (!e.valid) {
+        std::fprintf(stderr, "GP%u: %s\n", gpio, e.error);
+        return false;
+    }
+    Segment segs[kMaxSegments];
+    uint64_t high_cycles = 0;
+    for (size_t i = 0; i < e.word_count; ++i) {
+        const uint64_t cycles = (words[i] >> 1) + timing::kPatternSegmentOverheadCycles;
+        segs[i] = {(words[i] & 1u) != 0, cycles_to_ns(cycles)};
+        if (segs[i].level) {
+            high_cycles += cycles;
+        }
+    }
+    const std::string per = "PIO" + std::to_string(pio_index) + " SM" + std::to_string(sm) + "+DMA";
+    write_signal_head(f, false, gpio, name, kind, per, 0.0,
+                      static_cast<double>(kSysHz) / static_cast<double>(e.total_cycles),
+                      100.0 * static_cast<double>(high_cycles) / static_cast<double>(e.total_cycles));
+    write_segments(f, segs, e.word_count);
+    std::fprintf(f, "    }");
+    return true;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -119,31 +147,12 @@ int main(int argc, char** argv) {
         std::fprintf(f, "    }");
     }
 
-    // Irregular pattern, using the encoded cycle counts so rounding matches.
-    {
-        uint32_t words[config::kPatternSegmentCount];
-        const auto e = timing::encode_pattern(kSysHz, config::kPatternSegments, config::kPatternSegmentCount, words,
-                                              config::kPatternSegmentCount);
-        if (!e.valid) {
-            std::fprintf(stderr, "pattern: %s\n", e.error);
-            return 1;
-        }
-        Segment segs[config::kPatternSegmentCount];
-        uint64_t high_cycles = 0;
-        for (size_t i = 0; i < e.word_count; ++i) {
-            const uint64_t cycles = (words[i] >> 1) + timing::kPatternSegmentOverheadCycles;
-            segs[i] = {(words[i] & 1u) != 0, cycles_to_ns(cycles)};
-            if (segs[i].level) {
-                high_cycles += cycles;
-            }
-        }
-        const std::string per =
-            "PIO" + std::to_string(config::kPatternPioIndex) + " SM" + std::to_string(config::kPatternSm) + "+DMA";
-        write_signal_head(f, false, pins::kPattern, config::kPatternName, "pattern", per, 0.0,
-                          static_cast<double>(kSysHz) / static_cast<double>(e.total_cycles),
-                          100.0 * static_cast<double>(high_cycles) / static_cast<double>(e.total_cycles));
-        write_segments(f, segs, e.word_count);
-        std::fprintf(f, "    }");
+    // The GP9 pattern and the GP26 bouncing button, using the encoded cycle counts so rounding matches.
+    if (!write_pattern(f, pins::kPattern, config::kPatternName, "pattern", config::kPatternPioIndex,
+                       config::kPatternSm, config::kPatternSegments, config::kPatternSegmentCount) ||
+        !write_pattern(f, pins::kBounce, config::kBounceName, "bounce", config::kBouncePioIndex, config::kBounceSm,
+                       config::kBounceSegments, config::kBounceSegmentCount)) {
+        return 1;
     }
 
     std::fprintf(f, "\n  ]\n}\n");

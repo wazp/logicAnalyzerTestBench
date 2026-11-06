@@ -1,5 +1,5 @@
-// Every signal pin on the test bench, basic (GP0-GP9) and protocol
-// (GP10-GP22), with a name, a short label for diagrams, and a color.
+// Every signal pin on the test bench, basic (GP0-GP9 and the GP26 button) and
+// protocol (GP10-GP22), with a name, a short label for diagrams, and a color.
 //
 // Lessons refer to signals by Pico pin, never by analyzer channel: analyzers
 // number their inputs differently (CH1, D0, 0...), and a learner with 8
@@ -19,6 +19,7 @@ const basicShort: Record<number, string> = {
   7: '75%',
   8: 'pulse',
   9: 'pattern',
+  26: 'button',
 };
 
 const protocolShort: Record<string, string> = {

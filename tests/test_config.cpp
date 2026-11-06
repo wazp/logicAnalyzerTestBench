@@ -49,6 +49,55 @@ TEST(default_pattern_is_1ms) {
     CHECK_NEAR(e.period_us, 1000.0, 1e-9);
 }
 
+// The bouncing button on GP26: what the lesson promises (edge counts, settle
+// times, period) must hold for the encoded segments the board plays.
+struct Edges {
+    unsigned falling = 0;
+    unsigned rising = 0;
+};
+
+static Edges count_edges(size_t from, size_t to) {  // Segment indexes, `to` excluded.
+    const size_t n = config::kBounceSegmentCount;
+    Edges e;
+    for (size_t i = from; i < to; ++i) {
+        const bool prev = config::kBounceSegments[(i + n - 1) % n].level;
+        const bool now = config::kBounceSegments[i].level;
+        if (prev && !now) ++e.falling;
+        if (!prev && now) ++e.rising;
+    }
+    return e;
+}
+
+TEST(default_bounce_is_500ms_and_bounces) {
+    uint32_t words[config::kBounceSegmentCount];
+    const auto e = timing::encode_pattern(kSys, config::kBounceSegments, config::kBounceSegmentCount, words,
+                                          config::kBounceSegmentCount);
+    CHECK(e.valid);
+    CHECK_EQ(e.total_cycles, 75000000u);  // 500 ms at 150 MHz.
+
+    // Segments alternate, so every boundary is an edge, and the cycle starts with the press.
+    const size_t n = config::kBounceSegmentCount;
+    for (size_t i = 0; i < n; ++i) {
+        CHECK(config::kBounceSegments[i].level != config::kBounceSegments[(i + 1) % n].level);
+    }
+    CHECK(!config::kBounceSegments[0].level);
+
+    // Press: up to and including the long "held" segment; release: the rest.
+    size_t held = 0;
+    while (config::kBounceSegments[held].duration_ns < 100000000u) ++held;
+    const Edges press = count_edges(0, held + 1);
+    const Edges release = count_edges(held + 1, config::kBounceSegmentCount);
+    CHECK_EQ(press.falling, 6u);
+    CHECK_EQ(press.rising, 5u);
+    CHECK_EQ(release.rising, 3u);
+    CHECK_EQ(release.falling, 2u);
+
+    uint64_t press_ns = 0;
+    for (size_t i = 0; i < held; ++i) press_ns += config::kBounceSegments[i].duration_ns;
+    CHECK_EQ(press_ns, 583000u);
+    CHECK_EQ(press_ns + config::kBounceSegments[held].duration_ns, 200000000u);  // Held for 200 ms.
+}
+
 TEST(no_pin_or_state_machine_conflicts) {
     std::set<unsigned> used_pins;
     std::set<std::pair<unsigned, unsigned>> used_sms;
@@ -61,7 +110,7 @@ TEST(no_pin_or_state_machine_conflicts) {
 
     for (const auto& s : config::kSquareSignals) {
         claim_pin(s.pin);
-        CHECK(s.pio_index < 2);  // PIO2 stays free.
+        CHECK(s.pio_index < 2);  // PIO2 is for the bounce signal and the Wi-Fi driver.
         CHECK(s.sm < 4);
         CHECK(used_sms.insert({s.pio_index, s.sm}).second);
     }
@@ -79,4 +128,9 @@ TEST(no_pin_or_state_machine_conflicts) {
     CHECK(used_sms.insert({config::kTimelinePioIndex, config::kTimelineSm}).second);
     // PIO0 and PIO1 are completely used, which is what sends the CYW43 driver to PIO2.
     CHECK_EQ(used_sms.size(), 8u);
+
+    // The bounce signal is the only one on PIO2, leaving three state machines for the driver.
+    claim_pin(pins::kBounce);
+    CHECK_EQ(config::kBouncePioIndex, 2u);
+    CHECK(used_sms.insert({config::kBouncePioIndex, config::kBounceSm}).second);
 }

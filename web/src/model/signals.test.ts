@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  bounceTiming,
   idealTrace,
   levelAt,
   periodNs,
@@ -10,14 +11,28 @@ import {
 } from './signals';
 
 describe('signals.json', () => {
-  it('has the ten default signals on GP0-GP9', () => {
-    expect(signals.map((s) => s.gpio)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  it('has the ten default signals on GP0-GP9 and the button on GP26', () => {
+    expect(signals.map((s) => s.gpio)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 26]);
   });
 
   it('periods match the actual frequency', () => {
     for (const s of signals) {
       expect(periodNs(s)).toBeCloseTo(1e9 / s.actualHz, 3);
     }
+  });
+});
+
+describe('bounceTiming', () => {
+  // Same numbers the firmware's host test checks in tests/test_config.cpp.
+  it('reads the press and release out of the GP26 segments', () => {
+    const b = bounceTiming(signalByGpio(26));
+    expect(b.periodNs).toBe(500e6);
+    expect(b.pressBounceNs).toBe(583e3);
+    expect(b.heldNs).toBe(200e6);
+    expect(b.releaseBounceNs).toBe(100e3);
+    expect([b.pressFalling, b.pressRising, b.releaseRising, b.releaseFalling]).toEqual([6, 5, 3, 2]);
+    expect(b.longestFalseReleaseNs).toBe(220e3);
+    expect(b.shortestNs).toBe(2e3);
   });
 });
 

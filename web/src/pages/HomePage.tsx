@@ -7,7 +7,7 @@ import { minimumAnalyzer } from '../model/capture';
 import { formatHz, formatPercent, formatRate, formatTime } from '../model/format';
 import { physicalPinForGpio } from '../model/pico';
 import { frameMs, protocolData as d, protocolPins, type ProtocolId } from '../model/protocols';
-import { clkSysHz, periodNs, signals } from '../model/signals';
+import { bounceTiming, clkSysHz, periodNs, signals } from '../model/signals';
 
 const protocolDetail: Record<ProtocolId, string> = {
   uart: `${d.uart.baud} baud, 8N1`,
@@ -45,8 +45,8 @@ export function HomePage() {
         <h1>Learn your logic analyzer</h1>
         <p class="lede">
           This Pico 2 W is outputting {allSignalGpios.length} known test signals right now: square waves and pulses to
-          learn the basics, and the protocols you will meet on real boards (UART, I²C, SPI, WS2812, 1-Wire, IR, a
-          rotary encoder). Follow the lessons to learn how to set up, trigger, decode and read captures, or run the
+          learn the basics, a push button that bounces, and the protocols you will meet on real boards (UART, I²C, SPI,
+          WS2812, 1-Wire, IR, a rotary encoder). Follow the lessons to learn how to set up, trigger, decode and read captures, or run the
           checks to verify an analyzer.
         </p>
       </header>
@@ -112,8 +112,18 @@ export function HomePage() {
                     <tr key={s.gpio}>
                       <PinCell gpio={s.gpio} />
                       <td>{s.name}</td>
-                      <td>{s.kind === 'pattern' ? `${formatTime(periodNs(s))} frame` : formatHz(s.actualHz)}</td>
-                      <td>{formatPercent(s.dutyPercent)}</td>
+                      <td>
+                        {s.kind === 'pattern'
+                          ? `${formatTime(periodNs(s))} frame`
+                          : s.kind === 'bounce'
+                            ? `pressed every ${formatTime(periodNs(s))}`
+                            : formatHz(s.actualHz)}
+                      </td>
+                      <td>
+                        {s.kind === 'bounce'
+                          ? `held ${formatTime(bounceTiming(s).heldNs)}`
+                          : formatPercent(s.dutyPercent)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

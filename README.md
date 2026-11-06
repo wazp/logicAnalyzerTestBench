@@ -2,18 +2,18 @@
 
 **Learn to use a logic analyzer on signals you already know the answer to.**
 
-A logic analyzer is easy to plug in and hard to trust at first: is that glitch real, or is the sample rate too low? Is the decoder wrong, or the wiring? This project turns a **Raspberry Pi Pico 2 W** into a practice board that answers those questions. It outputs 23 known 3.3V test signals and carries its own guided lessons, served over Wi-Fi to your phone or computer. Each lesson tells you what to connect, how to set up the capture and the trigger, and shows the capture you should get, so you can compare and find out where yours differs.
+A logic analyzer is easy to plug in and hard to trust at first: is that glitch real, or is the sample rate too low? Is the decoder wrong, or the wiring? This project turns a **Raspberry Pi Pico 2 W** into a practice board that answers those questions. It outputs 24 known 3.3V test signals and carries its own guided lessons, served over Wi-Fi to your phone or computer. Each lesson tells you what to connect, how to set up the capture and the trigger, and shows the capture you should get, so you can compare and find out where yours differs.
 
 It works with **any logic analyzer and any software**: the analyzer's own app, or the free [PulseView](https://sigrok.org/wiki/PulseView). The lessons describe what to set, not where to click.
 
-> **No building, no tools, no install.** Everything is in one firmware file: the 23 signals, the Wi-Fi hotspot and the complete guide. Download `logic_test_bench.uf2` from the [latest release](https://github.com/wazp/logicAnalyzerTestBench/releases/latest), drag it onto the Pico 2 W, and you are done. You never need the build instructions further down unless you want to change the firmware.
+> **No building, no tools, no install.** Everything is in one firmware file: the 24 signals, the Wi-Fi hotspot and the complete guide. Download `logic_test_bench.uf2` from the [latest release](https://github.com/wazp/logicAnalyzerTestBench/releases/latest), drag it onto the Pico 2 W, and you are done. You never need the build instructions further down unless you want to change the firmware.
 
 ## What you learn
 
 | Track | Lessons |
 |---|---|
 | Concepts | How a logic analyzer works, voltage levels and thresholds (3.3V, 5V, VREF), the words analyzers use, triggers, common gotchas |
-| Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers |
+| Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers, checking whether a board is alive, switch bounce |
 | Protocols | UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder |
 | Verify | Sanity check of every analyzer input with a pass/fail checklist |
 
@@ -37,7 +37,7 @@ Looking for an analyzer? The [gusmanb LogicAnalyzer](https://github.com/gusmanb/
 
 ## How it works
 
-All signals are generated in hardware (PIO, PWM and DMA). Once started, the CPU only runs the USB serial console and the Wi-Fi web server, so the signals have no software jitter. The basic signals cover square waves, PWM and pulses (sample rates, triggers, measuring); GP10 to GP22 carry the protocols you meet on real boards. Every protocol simulates both sides of its bus, so nothing else needs to be connected.
+All signals are generated in hardware (PIO, PWM and DMA). Once started, the CPU only runs the USB serial console and the Wi-Fi web server, so the signals have no software jitter. The basic signals cover square waves, PWM and pulses (sample rates, triggers, measuring); GP10 to GP22 carry the protocols you meet on real boards, and GP26 is a push button that bounces like a real one. Every protocol simulates both sides of its bus, so nothing else needs to be connected.
 
 The guide is a small web app built into the firmware. It needs no internet connection, no app install and no account. All you need is the Pico and this firmware.
 
@@ -61,7 +61,7 @@ Built with the official [Raspberry Pi Pico SDK](https://github.com/raspberrypi/p
 | GP9 | 12 | Irregular repeating pattern, 1 ms period | PIO1 SM2 + DMA |
 | GND | 3, 8, 13, 18, 23, 28, 33 (AGND), 38 | Ground, all the same | |
 
-All square waves and the GP9 pattern start on the same clock cycle, so their rising edges line up (every 1 Hz edge coincides with a 10 Hz edge, and so on). The PWM outputs start a few cycles apart from the PIO outputs.
+All square waves, the GP9 pattern, the protocol frame and the GP26 button start on the same clock cycle, so their rising edges line up (every 1 Hz edge coincides with a 10 Hz edge, and so on). The PWM outputs start a few cycles apart from the PIO outputs.
 
 ### The GP9 pattern
 
@@ -94,6 +94,17 @@ GP10 to GP22 carry protocol traffic. All of it repeats in one **120 ms frame**, 
 | GP22 | 29 | Quadrature B | |
 
 > **Do not connect the protocol pins to real devices.** I²C and 1-Wire are open-drain buses on real hardware; here every line is driven push-pull. That looks identical to a logic analyzer, but a real sensor, LED strip or bus on these pins could be damaged.
+
+### The GP26 bouncing button
+
+GP26 (physical pin 31) behaves like a push button with a pull-up: high when released, low when pressed. It is pressed every 500 ms and held for 200 ms, and its contacts bounce on both press and release, the way a real button's do:
+
+```
+ press:   40us L | 15us H | 120us L | 60us H | 8us L | 220us H | 90us L | 3us H | 25us L | 2us H | held low
+ release: 20us H | 6us L | 70us H | 4us L | released high for the rest of the 500 ms
+```
+
+That is 6 falling edges for one press, and 2 more on release. It is played by PIO2 SM0 with the same pattern player as GP9. GP27 and GP28 are still free.
 
 ### Changing the signals
 
@@ -272,7 +283,7 @@ npm --prefix web test
 
 ## Working on the web guide
 
-The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 45 KB gzipped).
+The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 50 KB gzipped).
 
 ```bash
 npm --prefix web ci
@@ -332,7 +343,7 @@ src/
   hw/square_wave.pio      PIO program: square wave with any duty cycle
   hw/square_output.*      sets up one PIO state machine per square wave
   hw/pattern.pio          PIO program: plays (level, duration) segments
-  hw/pattern_output.*     pattern encoding, played by DMA
+  hw/pattern_output.*     pattern encoding, played by DMA (GP9 and GP26)
   hw/timeline.pio         PIO program: plays 13-pin (levels, duration) words
   hw/timeline_output.*    builds the protocol frame and plays it on GP10-GP22
   hw/dma_loop.*           looping DMA into a PIO FIFO (pattern and timeline)

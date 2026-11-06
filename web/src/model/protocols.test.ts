@@ -6,7 +6,7 @@ import { idealWaveTrace, sampledWaveTrace, waveLevelAt } from './wave';
 describe('protocols.json', () => {
   it('has 13 pins on GP10-GP22', () => {
     expect(protocolPins.map((p) => p.gpio)).toEqual([10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]);
-    expect(allSignalGpios).toHaveLength(23);
+    expect(allSignalGpios).toHaveLength(24);
   });
 
   it('names and labels every pin', () => {

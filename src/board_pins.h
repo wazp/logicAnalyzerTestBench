@@ -40,6 +40,10 @@ constexpr unsigned kQuadratureA = 21;
 constexpr unsigned kQuadratureB = 22;
 constexpr unsigned kTimelinePinCount = 13;
 
+// A push button that bounces, played by PIO2 like the GP9 pattern. GP27 and
+// GP28 are still free.
+constexpr unsigned kBounce = 26;
+
 // Pins wired to the CYW43439 wireless chip on the Pico 2 W. Never use these.
 //   GP23 WL_ON, GP24 WL_D (data/IRQ), GP25 WL_CS, GP29 WL_CLK (also VSYS/3 ADC)
 constexpr unsigned kReservedPins[] = {23, 24, 25, 29};
@@ -63,7 +67,8 @@ constexpr bool pwm_is_channel_a(unsigned pin) { return (pin & 1u) == 0; }
 
 static_assert(!is_reserved(kSquare1Hz) && !is_reserved(kSquare10Hz) && !is_reserved(kSquare100Hz) &&
                   !is_reserved(kSquare1kHz) && !is_reserved(kSquare10kHz) && !is_reserved(kSquare100kHz) &&
-                  !is_reserved(kPwm25) && !is_reserved(kPwm75) && !is_reserved(kPulse) && !is_reserved(kPattern),
+                  !is_reserved(kPwm25) && !is_reserved(kPwm75) && !is_reserved(kPulse) && !is_reserved(kPattern) &&
+                  !is_reserved(kBounce),
               "a signal pin collides with a pin reserved for the CYW43 wireless chip");
 
 static_assert(kTimelineBase + kTimelinePinCount - 1 == kQuadratureB && kUartTx == kTimelineBase &&
@@ -81,6 +86,7 @@ constexpr bool timeline_overlaps_reserved() {
 }
 static_assert(!timeline_overlaps_reserved(), "a protocol pin collides with a pin reserved for the CYW43 chip");
 static_assert(kTimelineBase > kPattern, "protocol pins must not overlap the basic signals");
+static_assert(kBounce >= kTimelineBase + kTimelinePinCount, "the bounce pin must not overlap the protocol pins");
 
 // GP6 and GP7 must be the A and B channels of the same slice, because they
 // share one PWM frequency and only differ in duty cycle.

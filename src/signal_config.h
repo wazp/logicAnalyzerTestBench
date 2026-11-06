@@ -15,7 +15,8 @@
 namespace config {
 
 // One PIO state machine per square wave, so every pin gets an independent
-// frequency. PIO2 is left free for the CYW43 driver or future modes.
+// frequency. PIO0 and PIO1 hold the signals; PIO2 holds only the bounce
+// signal, and the CYW43 Wi-Fi driver takes its next free state machine.
 struct SquareSignalConfig {
     unsigned pin;
     const char* name;
@@ -85,6 +86,40 @@ constexpr const char* kPatternName = "irregular pattern, 1 ms";
 // The pattern state machine lives next to the 10 kHz and 100 kHz square waves.
 constexpr unsigned kPatternPioIndex = 1;
 constexpr unsigned kPatternSm = 2;
+
+// GP26: a push button pressed every 500 ms, the way a real one looks: active
+// low (pulled up, the button connects to ground), with contact bounce on
+// press and release. Played by the same PIO pattern player as GP9. The burst
+// is irregular on purpose: a 220 us stretch of "released" in the middle of the
+// press, and 2-3 us spikes that only fast sample rates catch.
+inline constexpr timing::PatternSegment kBounceSegments[] = {
+    // Press: 6 falling edges before the contacts settle, 583 us after the first.
+    {false, 40000},
+    {true, 15000},
+    {false, 120000},
+    {true, 60000},
+    {false, 8000},
+    {true, 220000},
+    {false, 90000},
+    {true, 3000},
+    {false, 25000},
+    {true, 2000},
+    {false, 199417000},  // Held down: 200 ms from the first edge.
+    // Release: 3 rising edges, settled 100 us after the first.
+    {true, 20000},
+    {false, 6000},
+    {true, 70000},
+    {false, 4000},
+    {true, 299900000},  // Released for the rest of the 500 ms cycle.
+};
+
+constexpr size_t kBounceSegmentCount = sizeof(kBounceSegments) / sizeof(kBounceSegments[0]);
+constexpr const char* kBounceName = "bouncing button, 500 ms";
+
+// PIO2, so PIO0 and PIO1 stay as they were. The CYW43 driver needs one state
+// machine and a few instructions, which PIO2 still has.
+constexpr unsigned kBouncePioIndex = 2;
+constexpr unsigned kBounceSm = 0;
 
 // ---------------------------------------------------------------------------
 // Protocol signals on GP10-GP22 (see src/core/protocol_frame.h)

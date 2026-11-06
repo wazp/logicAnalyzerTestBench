@@ -160,8 +160,9 @@ bool wifi_start() {
     }
 
     // The CYW43 driver takes the first PIO with a free state machine. The
-    // signals have already claimed every state machine in PIO0 and PIO1 (see
-    // main.cpp), so the driver lands on PIO2, as AGENTS.md requires.
+    // signals have already claimed every state machine in PIO0 and PIO1 and
+    // SM0 of PIO2 (see main.cpp), so the driver lands on PIO2, as AGENTS.md
+    // requires.
     const int err = cyw43_arch_init();
     if (err != 0) {
         printf("Wi-Fi: radio init failed (%d), continuing without the web guide\n", err);

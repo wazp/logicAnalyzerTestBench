@@ -14,7 +14,7 @@ Conventions for anyone (human or AI agent) working on this repository. See [READ
 2. **No blocking delays for signals.** Signals are produced by PIO, PWM, DMA or hardware timers. The CPU main loop only runs the console. `sleep_ms` is acceptable in console code, never in signal generation.
 3. **One place for pins.** `src/board_pins.h` owns every GPIO assignment. Changing a pin means updating `board_pins.h`, the pinout table in README.md, and the `bi_decl` lines in `main.cpp`.
 4. **One place for defaults.** `src/signal_config.h` owns frequencies, duty cycles, patterns and PIO state machine allocation. Keep it SDK-free so tests can check it.
-5. **Never use** GP23, GP24, GP25, GP29 (CYW43 wireless chip). Keep GP0/GP1 free of UART stdio (stdio is USB only). PIO2 belongs to the Wi-Fi driver; keep signals in PIO0 and PIO1.
+5. **Never use** GP23, GP24, GP25, GP29 (CYW43 wireless chip). Keep GP0/GP1 free of UART stdio (stdio is USB only). PIO2 belongs to the Wi-Fi driver, except SM0, which plays the GP26 bouncing button; keep every other signal in PIO0 and PIO1, so the driver always finds a free state machine and room for its program in PIO2.
 6. **Peripheral conflicts:** PWM slices are shared by GPIO pairs (slice = (gpio / 2) % 8). Two signals with different frequencies must not share a slice. PIO state machines are claimed explicitly with `pio_sm_claim` so a double allocation panics at boot. `tests/test_config.cpp` checks pins and state machines for duplicates; extend it when adding outputs.
 7. **Validate and report.** Every output computes its actual achieved timing, panics with a clear message on invalid config, and adds a row to the status table (`status_add`).
 8. **Simple over clever.** Plain structs and free functions. Add an abstraction only when a second real user needs it.
@@ -26,7 +26,7 @@ Conventions for anyone (human or AI agent) working on this repository. See [READ
 
 ## Web guide (web/)
 
-- Preact + TypeScript + Vite, built into one self-contained `index.html` (vite-plugin-singlefile) that the firmware embeds. Keep it small (currently about 45 KB gzipped) and fully offline: no CDN scripts, no web fonts, no external requests.
+- Preact + TypeScript + Vite, built into one self-contained `index.html` (vite-plugin-singlefile) that the firmware embeds. Keep it small (currently about 50 KB gzipped) and fully offline: no CDN scripts, no web fonts, no external requests.
 - Lessons are data, one file per lesson in `web/src/lessons/concepts/`, `basics/`, `protocols/` or `verify/`, each exporting one `Lesson`. A lesson teaches with explanation `sections`, hands-on `parts` (captures with settings and expected waveforms), or both; one without parts wires no pins. Shared building blocks (wiring steps, example views, byte helpers) are in `web/src/lessons/helpers.ts`, the shapes in `types.ts`. `web/src/lessons/index.ts` lists the lessons in guide order; a new lesson is a new file plus one line there. Compute every number from the signal data; never type expected values by hand.
 - **Analyzer neutral.** The guide is for any logic analyzer and any software. Never name an app's menus or buttons, never number analyzer channels: refer to signals by Pico pin (`GP10`) and say "any free input". Describe settings in plain terms (sample rate, length, trigger edge on a pin, decoder parameters).
 - Every lesson must work on a small analyzer: at most 8 inputs and 24 MS/s per capture (`web/src/model/capture.ts`). The lesson tests enforce it.
@@ -42,7 +42,7 @@ Protocols live on the timeline (GP10-GP22, one PIO state machine, 120 ms frame);
 3. Add a status row in `src/hw/timeline_output.cpp`, an export in `tools/export_protocols.cpp` (facts plus one example window), then regenerate `web/src/data/protocols.json`.
 4. Write the lesson as `web/src/lessons/protocols/<name>.ts`, add it to `web/src/lessons/index.ts`, and update README (signals table) and docs/timing.md (precision).
 
-Signals that cannot share the 120 ms frame (for example video) need their own state machine or a preset that replaces the frame; discuss before adding one, since PIO0 and PIO1 are full.
+All 13 timeline pins are in use, so a new protocol needs a pin freed first. Signals that cannot share the 120 ms frame (for example video) need their own state machine or a preset that replaces the frame; discuss before adding one, since PIO0 and PIO1 are full. GP27 and GP28 are the only free pins.
 
 ## Build and test before committing
 
