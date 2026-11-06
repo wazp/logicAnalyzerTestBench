@@ -3,6 +3,7 @@ import type { View } from '../lessons/types';
 import { formatRate } from '../model/format';
 import { signalByGpio, waveOf } from '../model/signals';
 import { Waveform, type Row } from './Waveform';
+import { Zoomable } from './Zoomable';
 
 /** Switches between the views of one capture, and between sample rates when a view offers them. */
 export function ViewTabs({ gpios, views }: { gpios: number[]; views: View[] }) {
@@ -40,7 +41,9 @@ export function ViewTabs({ gpios, views }: { gpios: number[]; views: View[] }) {
           </div>
         )}
       </div>
-      <Waveform rows={rows} startNs={view.startNs} endNs={view.endNs} sampleRateHz={rate} />
+      <Zoomable title={rate ? `${view.title} (${formatRate(rate)})` : view.title} wide>
+        <Waveform rows={rows} startNs={view.startNs} endNs={view.endNs} sampleRateHz={rate} />
+      </Zoomable>
       <figcaption>{view.caption}</figcaption>
     </figure>
   );

@@ -1,5 +1,6 @@
 import { PinDiagram } from '../components/PinDiagram';
 import { useDeviceStatus } from '../components/useDeviceStatus';
+import { Zoomable } from '../components/Zoomable';
 import { lessons } from '../lessons';
 import { allSignalGpios, signalColor } from '../model/board';
 import { minimumAnalyzer } from '../model/capture';
@@ -91,7 +92,9 @@ export function HomePage() {
       <section>
         <h2>The test signals</h2>
         <div class="wiring-grid">
-          <PinDiagram gpios={allSignalGpios} />
+          <Zoomable title="The test signals">
+            <PinDiagram gpios={allSignalGpios} />
+          </Zoomable>
           <div>
             <h3>Basics</h3>
             <div class="table-scroll">

@@ -1,3 +1,4 @@
+import { Fragment } from 'preact';
 import { shortLabel } from '../model/board';
 import { captureWindow, describeTrigger, samplesNeeded, validateSettings, type CaptureSettings } from '../model/capture';
 import { formatCount, formatRate, formatTime } from '../model/format';
@@ -12,11 +13,14 @@ export function SettingsCard({ settings }: { settings: CaptureSettings }) {
       <dl>
         <dt>Record</dt>
         <dd>
+          {/* The separator sits outside the nowrap span so the list can break between pins. */}
           {settings.gpios.map((g, i) => (
-            <span key={g} class="nowrap">
-              GP{g} <span class="muted">({shortLabel(g)})</span>
-              {i < settings.gpios.length - 1 ? ', ' : ''}
-            </span>
+            <Fragment key={g}>
+              {i > 0 && ', '}
+              <span class="nowrap">
+                GP{g} <span class="muted">({shortLabel(g)})</span>
+              </span>
+            </Fragment>
           ))}
         </dd>
         <dt>Sample rate</dt>

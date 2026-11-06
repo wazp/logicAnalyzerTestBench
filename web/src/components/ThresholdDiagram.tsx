@@ -1,3 +1,5 @@
+import { Zoomable } from './Zoomable';
+
 // How an analyzer turns a voltage into bits: a slow, slightly noisy rising
 // edge and a clean falling edge on 3.3V logic, the threshold the analyzer
 // compares against, and the bits it records. Where the slow edge lingers near
@@ -58,28 +60,32 @@ export function ThresholdDiagram() {
 
   return (
     <figure class="threshold-diagram">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Input voltage, threshold and recorded bits">
-        <rect class="th-band" x={LEFT} y={y(VIH)} width={RIGHT - LEFT} height={y(VIL) - y(VIH)} />
-        {hline(3.3, 'th-rail', '3.3 V')}
-        {hline(VIH, 'th-limit', 'VIH 2.0')}
-        {hline(THRESHOLD, 'th-threshold', '1.65 V')}
-        {hline(VIL, 'th-limit', 'VIL 0.8')}
-        {hline(0, 'th-rail', '0 V')}
-        <text class="th-note" x={RIGHT - 4} y={y((VIH + VIL) / 2) + 4} text-anchor="end">
-          undefined zone
-        </text>
-        <path class="th-analog" d={analog} />
-        <text class="th-label" x={LEFT - 6} y={DIGITAL_TOP + DIGITAL_H / 2 + 4} text-anchor="end">
-          bits
-        </text>
-        <path class="th-digital" d={digital} />
-        <text class="th-note" x={x(0.36)} y={H - 6} text-anchor="middle">
-          slow edge: {glitches > 1 ? `${glitches} rising edges instead of 1` : 'one clean edge'}
-        </text>
-        <text class="th-note" x={x(0.8)} y={H - 6} text-anchor="middle">
-          fast edge: clean
-        </text>
-      </svg>
+      <Zoomable title="Threshold and glitches" wide>
+        <div class="figure-scroll">
+          <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Input voltage, threshold and recorded bits">
+            <rect class="th-band" x={LEFT} y={y(VIH)} width={RIGHT - LEFT} height={y(VIL) - y(VIH)} />
+            {hline(3.3, 'th-rail', '3.3 V')}
+            {hline(VIH, 'th-limit', 'VIH 2.0')}
+            {hline(THRESHOLD, 'th-threshold', '1.65 V')}
+            {hline(VIL, 'th-limit', 'VIL 0.8')}
+            {hline(0, 'th-rail', '0 V')}
+            <text class="th-note" x={RIGHT - 4} y={y((VIH + VIL) / 2) + 4} text-anchor="end">
+              undefined zone
+            </text>
+            <path class="th-analog" d={analog} />
+            <text class="th-label" x={LEFT - 6} y={DIGITAL_TOP + DIGITAL_H / 2 + 4} text-anchor="end">
+              bits
+            </text>
+            <path class="th-digital" d={digital} />
+            <text class="th-note" x={x(0.36)} y={H - 6} text-anchor="middle">
+              slow edge: {glitches > 1 ? `${glitches} rising edges instead of 1` : 'one clean edge'}
+            </text>
+            <text class="th-note" x={x(0.8)} y={H - 6} text-anchor="middle">
+              fast edge: clean
+            </text>
+          </svg>
+        </div>
+      </Zoomable>
       <figcaption>
         The analyzer compares each sample with one threshold (here 1.65 V, half of 3.3 V). A chip's input is only
         guaranteed to read high above VIH and low below VIL. In between, a slow or noisy edge can cross the threshold

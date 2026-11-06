@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { lessonById, lessons } from './lessons';
+import { getStatus } from './model/device';
 import { HomePage } from './pages/HomePage';
 import { LessonPage } from './pages/LessonPage';
 import { WifiPage } from './pages/WifiPage';
@@ -19,14 +20,14 @@ function useRoute(): string {
   return hash.replace(/^#/, '') || '/';
 }
 
-function Nav({ route }: { route: string }) {
+function Nav({ route, open }: { route: string; open: boolean }) {
   const link = (href: string, label: string) => (
     <a href={`#${href}`} class={route === href ? 'active' : ''} aria-current={route === href ? 'page' : undefined}>
       {label}
     </a>
   );
   return (
-    <nav class="sidebar">
+    <nav id="sidebar" class={open ? 'sidebar open' : 'sidebar'}>
       <a class="brand" href="#/">
         <svg viewBox="0 0 16 16" aria-hidden="true">
           <path d="M1 12h3V4h4v8h3V4h4" />
@@ -48,13 +49,82 @@ function Nav({ route }: { route: string }) {
   );
 }
 
+// Narrow screens only: the sidebar becomes a drawer behind a hamburger
+// button. On wide screens the button and backdrop are hidden by CSS.
+function useDrawer(route: string) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => setOpen(false), [route]);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    window.addEventListener('keydown', onKey);
+    document.body.classList.add('drawer-open');
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.classList.remove('drawer-open');
+    };
+  }, [open]);
+  return [open, setOpen] as const;
+}
+
+// On the test bench's own hotspot (mode "setup") the visitor has just joined
+// it, usually from a phone's sign-in prompt, so open the Wi-Fi page instead of
+// the home page. Only once per tab, and only when no page was asked for, so
+// "Start here" stays reachable.
+const kWifiRedirectKey = 'ltb-wifi-redirected';
+
+function useHotspotRedirect() {
+  useEffect(() => {
+    const atHome = () => location.hash === '' || location.hash === '#/';
+    let done = false;
+    try {
+      done = sessionStorage.getItem(kWifiRedirectKey) === '1';
+    } catch {
+      // Storage blocked: redirect anyway, at worst once per load.
+    }
+    if (done || !atHome()) return;
+    getStatus().then((status) => {
+      if (status?.mode !== 'setup' || !atHome()) return;
+      try {
+        sessionStorage.setItem(kWifiRedirectKey, '1');
+      } catch {
+        // See above.
+      }
+      location.replace('#/wifi');
+    });
+  }, []);
+}
+
 export function App() {
   const route = useRoute();
+  useHotspotRedirect();
+  const [drawerOpen, setDrawerOpen] = useDrawer(route);
   const match = route.match(/^\/lesson\/(.+)$/);
   const lesson = match ? lessonById(match[1]) : undefined;
   return (
     <div class="layout">
-      <Nav route={route} />
+      <header class="topbar">
+        <button
+          type="button"
+          class={drawerOpen ? 'hamburger open' : 'hamburger'}
+          aria-label={drawerOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={drawerOpen}
+          aria-controls="sidebar"
+          onClick={() => setDrawerOpen(!drawerOpen)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+        <a class="brand" href="#/">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M1 12h3V4h4v8h3V4h4" />
+          </svg>
+          Test Bench
+        </a>
+      </header>
+      <div class={drawerOpen ? 'backdrop open' : 'backdrop'} onClick={() => setDrawerOpen(false)} />
+      <Nav route={route} open={drawerOpen} />
       <main>{lesson ? <LessonPage lesson={lesson} /> : route === '/wifi' ? <WifiPage /> : <HomePage />}</main>
     </div>
   );

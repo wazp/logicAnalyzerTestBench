@@ -4,6 +4,7 @@ import { Rich } from '../components/Rich';
 import { SettingsCard } from '../components/SettingsCard';
 import { ThresholdDiagram } from '../components/ThresholdDiagram';
 import { ViewTabs } from '../components/ViewTabs';
+import { Zoomable } from '../components/Zoomable';
 import { lessons, type FactTable, type Lesson, type Section } from '../lessons';
 import { signalColor, signalName } from '../model/board';
 import { physicalPinForGpio } from '../model/pico';
@@ -155,7 +156,9 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
         <section class="wiring-section">
           <h2>Wiring</h2>
           <div class="wiring-grid">
-            <PinDiagram gpios={lesson.gpios} />
+            <Zoomable title="Wiring">
+              <PinDiagram gpios={lesson.gpios} />
+            </Zoomable>
             <WiringTable gpios={lesson.gpios} />
           </div>
         </section>
