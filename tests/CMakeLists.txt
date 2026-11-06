@@ -17,6 +17,7 @@ add_executable(timing_tests
     test_net.cpp
     test_timeline.cpp
     test_protocols.cpp
+    test_video.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/timing.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/timeline.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocol_frame.cpp
@@ -27,6 +28,10 @@ add_executable(timing_tests
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/onewire.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/nec.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/quadrature.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/video_frame.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/vga.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/nes.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/ps2.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/http_request.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/settings.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/scan_list.cpp

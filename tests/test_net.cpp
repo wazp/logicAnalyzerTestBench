@@ -124,30 +124,98 @@ TEST(settings_validation_matches_wpa2_limits) {
     CHECK_EQ(std::string(settings::error_code(settings::Error::kPasswordTooShort)), "password_too_short");
 }
 
+settings::Settings with_network(const char* ssid, const char* password,
+                                presets::Preset preset = presets::kDefault) {
+    settings::Settings s;
+    s.wifi = settings::make(ssid, password);
+    s.preset = preset;
+    return s;
+}
+
 TEST(settings_round_trip) {
     uint8_t blob[settings::kBlobSize];
-    settings::serialize(settings::make("RogueTwo", "correct horse battery"), blob);
-    settings::WifiSettings s;
+    settings::serialize(with_network("RogueTwo", "correct horse battery", presets::Preset::kVideo), blob);
+    settings::Settings s;
     CHECK(settings::parse(blob, sizeof(blob), s));
-    CHECK_EQ(std::string(s.ssid), "RogueTwo");
-    CHECK_EQ(std::string(s.password), "correct horse battery");
+    CHECK_EQ(std::string(s.wifi.ssid), "RogueTwo");
+    CHECK_EQ(std::string(s.wifi.password), "correct horse battery");
+    CHECK(s.preset == presets::Preset::kVideo);
 
-    settings::serialize(settings::make(std::string(32, 'x').c_str(), std::string(63, 'y').c_str()), blob);
+    settings::serialize(with_network(std::string(32, 'x').c_str(), std::string(63, 'y').c_str()), blob);
     CHECK(settings::parse(blob, sizeof(blob), s));
-    CHECK_EQ(std::string(s.ssid), std::string(32, 'x'));
-    CHECK_EQ(std::string(s.password), std::string(63, 'y'));
+    CHECK_EQ(std::string(s.wifi.ssid), std::string(32, 'x'));
+    CHECK_EQ(std::string(s.wifi.password), std::string(63, 'y'));
+    CHECK(s.preset == presets::Preset::kProtocols);
+}
+
+TEST(settings_hold_a_preset_without_a_network) {
+    uint8_t blob[settings::kBlobSize];
+    settings::Settings saved;
+    saved.preset = presets::Preset::kVideo;
+    settings::serialize(saved, blob);
+    settings::Settings s;
+    CHECK(settings::parse(blob, sizeof(blob), s));
+    CHECK(!settings::has_network(s));
+    CHECK(s.preset == presets::Preset::kVideo);
+}
+
+// Firmware 0.4.0 and older wrote layout version 1, without the preset byte.
+// Updating must keep the saved network.
+TEST(settings_load_version_1_with_the_default_preset) {
+    uint8_t blob[settings::kBlobSize] = {};
+    const uint8_t header[8] = {'L', 'T', 'B', 'W', 1, 0, 0, 0};
+    std::memcpy(blob, header, sizeof(header));
+    std::memcpy(blob + 8, "RogueTwo", 8);
+    std::memcpy(blob + 41, "password1", 9);
+    const uint32_t crc = settings::crc32(blob, settings::kBlobSize - 4);
+    for (int i = 0; i < 4; ++i) blob[settings::kBlobSize - 4 + i] = static_cast<uint8_t>(crc >> (8 * i));
+    settings::Settings s;
+    s.preset = presets::Preset::kVideo;
+    CHECK(settings::parse(blob, sizeof(blob), s));
+    CHECK_EQ(std::string(s.wifi.ssid), "RogueTwo");
+    CHECK_EQ(std::string(s.wifi.password), "password1");
+    CHECK(s.preset == presets::Preset::kProtocols);
+
+    // Version 1 always held a network, so an empty one there is corruption.
+    std::memset(blob + 8, 0, 33);
+    const uint32_t crc2 = settings::crc32(blob, settings::kBlobSize - 4);
+    for (int i = 0; i < 4; ++i) blob[settings::kBlobSize - 4 + i] = static_cast<uint8_t>(crc2 >> (8 * i));
+    CHECK(!settings::parse(blob, sizeof(blob), s));
+}
+
+TEST(settings_unknown_preset_loads_as_the_default) {
+    uint8_t blob[settings::kBlobSize];
+    settings::serialize(with_network("net", "password1", presets::Preset::kVideo), blob);
+    blob[105] = 200;  // A preset from some future firmware.
+    const uint32_t crc = settings::crc32(blob, settings::kBlobSize - 4);
+    for (int i = 0; i < 4; ++i) blob[settings::kBlobSize - 4 + i] = static_cast<uint8_t>(crc >> (8 * i));
+    settings::Settings s;
+    CHECK(settings::parse(blob, sizeof(blob), s));
+    CHECK(s.preset == presets::kDefault);
+    CHECK_EQ(std::string(s.wifi.ssid), "net");
 }
 
 TEST(settings_reject_erased_flash_and_corruption) {
     uint8_t blob[settings::kBlobSize];
-    settings::WifiSettings s;
+    settings::Settings s;
     std::memset(blob, 0xFF, sizeof(blob));
     CHECK(!settings::parse(blob, sizeof(blob), s));
 
-    settings::serialize(settings::make("net", "password1"), blob);
+    settings::serialize(with_network("net", "password1"), blob);
     blob[10] ^= 1;
     CHECK(!settings::parse(blob, sizeof(blob), s));
     CHECK(!settings::parse(blob, 100, s));
+}
+
+TEST(presets_codes_round_trip) {
+    for (presets::Preset p : presets::kAll) {
+        presets::Preset back = presets::kDefault;
+        CHECK(presets::parse(presets::code(p), back));
+        CHECK(back == p);
+    }
+    presets::Preset p;
+    CHECK(!presets::parse("vga", p));
+    CHECK(!presets::from_number(presets::kCount, p));
 }
 
 TEST(settings_crc32_matches_reference) {
