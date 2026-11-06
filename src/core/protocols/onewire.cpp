@@ -4,9 +4,9 @@ namespace proto {
 
 namespace {
 
-constexpr double kResetLowUs = 480.0;
+constexpr double kResetLowUs = kOneWireResetLowUs;
 constexpr double kPresenceWaitUs = 30.0;   // After release, before the device pulls low (15-60).
-constexpr double kPresenceLowUs = 120.0;
+constexpr double kPresenceLowUs = kOneWirePresenceLowUs;
 constexpr double kResetRecoveryUs = 480.0;  // From release to the first slot.
 constexpr double kSlotUs = 70.0;
 constexpr double kWrite1LowUs = 6.0;

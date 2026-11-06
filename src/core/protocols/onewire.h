@@ -25,6 +25,10 @@
 
 namespace proto {
 
+// Public so the guide's lessons can quote them (tools/export_protocols.cpp).
+constexpr double kOneWireResetLowUs = 480.0;
+constexpr double kOneWirePresenceLowUs = 120.0;
+
 class OneWire {
 public:
     // The pin must be idle high.

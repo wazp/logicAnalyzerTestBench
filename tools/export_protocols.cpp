@@ -15,6 +15,8 @@
 #include <vector>
 
 #include "core/protocol_frame.h"
+#include "core/protocols/nec.h"
+#include "core/protocols/onewire.h"
 #include "signal_config.h"
 
 namespace {
@@ -231,6 +233,8 @@ int main(int argc, char** argv) {
         std::fprintf(f, "    \"scratchpad\": %s, \"temperatureC\": %.9g, \"convertAtMs\": %.9g, \"readAtMs\": %.9g,\n",
                      hex(pad, 9).c_str(), static_cast<int16_t>(c.onewire_raw_temp) * 0.0625,
                      c.onewire_convert_us / 1000.0, c.onewire_read_us / 1000.0);
+        std::fprintf(f, "    \"resetLowUs\": %.9g, \"presenceLowUs\": %.9g,\n", proto::kOneWireResetLowUs,
+                     proto::kOneWirePresenceLowUs);
         std::fprintf(f, "    \"examples\": [\n");
         write_example(f, frame, "onewire", "reset", "Reset and presence pulse", conv->start - 20 * us,
                       conv->start + 1000 * us, false);
@@ -247,6 +251,8 @@ int main(int argc, char** argv) {
         std::fprintf(f, "  \"ir\": {\n");
         std::fprintf(f, "    \"address\": %u, \"command\": %u, \"frameStartMs\": %.9g, \"repeatStartMs\": %.9g,\n",
                      c.ir_address, c.ir_command, ns(fr->start) / 1e6, ns(rep->start) / 1e6);
+        std::fprintf(f, "    \"unitUs\": %.9g, \"leaderUs\": %.9g, \"leaderSpaceUs\": %.9g, \"repeatSpaceUs\": %.9g,\n",
+                     proto::kNecUnitUs, proto::kNecLeaderUs, proto::kNecLeaderSpaceUs, proto::kNecRepeatSpaceUs);
         std::fprintf(f, "    \"examples\": [\n");
         write_example(f, frame, "ir", "frame", "Key press", fr->start - 50 * us, fr->end + 500 * us, false);
         write_example(f, frame, "ir", "repeat", "Repeat code", rep->start - 500 * us, rep->end + 100 * us, true);
