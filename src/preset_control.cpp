@@ -29,7 +29,11 @@ presets::Preset preset_load() {
 presets::Preset preset_active() { return active; }
 
 bool preset_request(presets::Preset p) {
-    if (p == active || restart_pending) {
+    if (restart_pending) {
+        return false;
+    }
+    if (p == active) {
+        requested = false;  // Asking for the active preset cancels a switch not saved yet.
         return false;
     }
     requested_preset = p;

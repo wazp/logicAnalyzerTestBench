@@ -15,8 +15,9 @@ presets::Preset preset_load();
 
 presets::Preset preset_active();
 
-// Asks for a switch. Returns false if `p` is already active (nothing to do).
-// Safe to call from lwIP callbacks.
+// Asks for a switch. Returns false if `p` is already active (nothing to do;
+// it also cancels a different switch that has not been saved yet) or a
+// restart is already under way. Safe to call from lwIP callbacks.
 bool preset_request(presets::Preset p);
 
 // True from an accepted request until the restart.
