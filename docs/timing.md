@@ -94,7 +94,7 @@ Recommended sample rates for every protocol are in its lesson. All of them stay 
 
 ## Start alignment
 
-All signal state machines (PIO0, PIO1 and PIO2 SM0) are enabled on the same clock cycle: `pio_enable_sm_multi_mask_in_sync` on PIO1 also enables its neighbors PIO0 and PIO2 in the same register write. So the square waves, both patterns and the protocol frame share t = 0. The two PWM slices start together on an earlier cycle. PWM and PIO edges are therefore offset by a few cycles (tens of nanoseconds), which is fine for learning but visible at very high sample rates.
+All signal state machines (PIO0, PIO1 and PIO2 SM0) are enabled on the same clock cycle: `pio_enable_sm_multi_mask_in_sync` on PIO1 also enables its neighbors PIO0 and PIO2 in the same register write. So the square waves, both patterns and the protocol frame share t = 0. The two PWM slices start together right after that, from the next store instruction. Both writes run from RAM with interrupts off (`start_signals` in `src/main.cpp`), so PWM edges trail PIO edges by a few cycles (tens of nanoseconds): under one sample at 24 MS/s, visible only at very high sample rates. Run from flash, an XIP cache miss between the two writes once put them about 3 us apart.
 
 ## Choosing an analyzer sample rate
 

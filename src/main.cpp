@@ -11,6 +11,7 @@
 #include "console/serial_console.h"
 #include "hardware/pio.h"
 #include "hardware/pwm.h"
+#include "hardware/sync.h"
 #include "hw/bootsel_button.h"
 #include "hw/pattern_output.h"
 #include "hw/pwm_output.h"
@@ -47,6 +48,20 @@ bi_decl(bi_1pin_with_name(pins::kQuadratureA, "Quadrature A"));
 bi_decl(bi_1pin_with_name(pins::kQuadratureB, "Quadrature B"));
 bi_decl(bi_1pin_with_name(pins::kBounce, "Bouncing button"));
 
+// Starts every signal state machine in all three PIO blocks (PIO1 enables its
+// neighbors PIO0 and PIO2 in the same write), then both PWM slices. Runs from
+// RAM with interrupts off so the two writes are a few cycles apart: run from
+// flash, an XIP cache miss between them put the two groups about 3 us apart
+// (measured on a board: GP3 rose 3.0 us after GP8). PIO goes first because
+// its CTRL value takes a dozen instructions to assemble; the PWM write is a
+// single store after it.
+static void __no_inline_not_in_flash_func(start_signals)(uint32_t pwm_slice_mask, const uint32_t (&sm_mask)[3]) {
+    const uint32_t irq = save_and_disable_interrupts();
+    pio_enable_sm_multi_mask_in_sync(pio1, sm_mask[0], sm_mask[1], sm_mask[2]);
+    pwm_set_mask_enabled(pwm_slice_mask);
+    restore_interrupts(irq);
+}
+
 int main() {
     stdio_init_all();
 
@@ -72,13 +87,9 @@ int main() {
     const unsigned pulse_slice = pwm_output_init_pulse(config::kPulse);
 
     // --- Start ---
-    // Both PWM slices start on the same cycle. The PIO state machines in all
-    // three PIO blocks then start together on one later cycle (PIO1 enables
-    // its neighbors PIO0 and PIO2 in the same write), so all square waves, both
-    // patterns and the protocol frame share t = 0. PWM and PIO are not cycle
-    // aligned with each other (a few cycles apart).
-    pwm_set_mask_enabled((1u << pair_slice) | (1u << pulse_slice));
-    pio_enable_sm_multi_mask_in_sync(pio1, sm_mask[0], sm_mask[1], sm_mask[2]);
+    // All square waves, both patterns and the protocol frame share t = 0; the
+    // PWM outputs start a few cycles later (see start_signals).
+    start_signals((1u << pair_slice) | (1u << pulse_slice), sm_mask);
 
     // Wi-Fi comes last, so a radio problem can never delay or disturb the
     // signals. It serves the web guide from flash; see src/net/wifi.h.
