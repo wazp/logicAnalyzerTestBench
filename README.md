@@ -1,10 +1,45 @@
 # Logic Analyzer Test Bench
 
-Firmware for the **Raspberry Pi Pico 2 W** (RP2350) that turns the board into a programmable digital signal generator for learning and testing **any logic analyzer**. It outputs 23 known, simultaneous 3.3V test signals: square waves, PWM and pulses for the basics (sample rates, triggers, measuring), plus the protocols you meet on real boards: UART, I²C, SPI, WS2812 LEDs, 1-Wire, an IR remote and a quadrature encoder.
+**Learn to use a logic analyzer on signals you already know the answer to.**
 
-All signals are generated in hardware (PIO, PWM and DMA). Once started, the CPU only runs the USB serial console and the Wi-Fi web server, so the signals have no software jitter.
+A logic analyzer is easy to plug in and hard to trust at first: is that glitch real, or is the sample rate too low? Is the decoder wrong, or the wiring? This project turns a **Raspberry Pi Pico 2 W** into a practice board that answers those questions. It outputs 23 known 3.3V test signals and carries its own guided lessons, served over Wi-Fi to your phone or computer. Each lesson tells you what to connect, how to set up the capture and the trigger, and shows the capture you should get, so you can compare and find out where yours differs.
 
-The board also carries its own **guided lessons**. It creates a Wi-Fi network, and any phone or laptop that joins it gets a step-by-step guide: where to plug in, which analyzer settings and trigger to use, and what the capture should look like. All you need is the Pico and this firmware.
+It works with **any logic analyzer and any software**: the analyzer's own app, or the free [PulseView](https://sigrok.org/wiki/PulseView). The lessons describe what to set, not where to click.
+
+> **No building, no tools, no install.** Everything is in one firmware file: the 23 signals, the Wi-Fi hotspot and the complete guide. Download `logic_test_bench.uf2` from the [latest release](https://github.com/wazp/logicAnalyzerTestBench/releases/latest), drag it onto the Pico 2 W, and you are done. You never need the build instructions further down unless you want to change the firmware.
+
+## What you learn
+
+| Track | Lessons |
+|---|---|
+| Concepts | How a logic analyzer works, voltage levels and thresholds (3.3V, 5V, VREF), the words analyzers use, triggers, common gotchas |
+| Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers |
+| Protocols | UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder |
+| Verify | Sanity check of every analyzer input with a pass/fail checklist |
+
+Every lesson needs at most **8 inputs** and **24 MS/s**, so even the cheapest USB analyzers can follow all of them. Signals are named by Pico pin (GP0, GP10...) rather than analyzer channel, and every expected waveform in the guide is computed from the same configuration the firmware uses, so the guide and the board can't disagree.
+
+## What you need
+
+- A **Raspberry Pi Pico 2 W** and a USB cable. The original Pico and Pico W are not supported.
+- A few jumper wires.
+- **Any logic analyzer** that reads 3.3V logic, with at least 8 inputs and 24 MS/s.
+- A phone or computer with a browser, to read the guide.
+
+Looking for an analyzer? The [gusmanb LogicAnalyzer](https://github.com/gusmanb/logicanalyzer) is an excellent open-source one: 24 channels, built around a Raspberry Pi Pico, with its own desktop app. It is the analyzer this test bench was developed and tested with.
+
+## Quick start
+
+1. Download `logic_test_bench.uf2` from the [latest release](https://github.com/wazp/logicAnalyzerTestBench/releases/latest). Hold the Pico's **BOOTSEL** button while you plug it into USB, then drag the file onto the `RP2350` drive that appears. The board restarts and the signals start right away (details in [Flashing](#flashing)).
+2. Join the Wi-Fi network **`TestBench-XXXX`** (password **`testbench`**). The guide opens as a sign-in page.
+3. Optional: in the guide's Wi-Fi settings, let the test bench join your own network, so you can read the lessons on the computer that runs your analyzer software.
+4. Connect ground, then follow the first lesson.
+
+## How it works
+
+All signals are generated in hardware (PIO, PWM and DMA). Once started, the CPU only runs the USB serial console and the Wi-Fi web server, so the signals have no software jitter. The basic signals cover square waves, PWM and pulses (sample rates, triggers, measuring); GP10 to GP22 carry the protocols you meet on real boards. Every protocol simulates both sides of its bus, so nothing else needs to be connected.
+
+The guide is a small web app built into the firmware. It needs no internet connection, no app install and no account. All you need is the Pico and this firmware.
 
 Built with the official [Raspberry Pi Pico SDK](https://github.com/raspberrypi/pico-sdk) (2.3.1) and CMake.
 
@@ -62,13 +97,15 @@ GP10 to GP22 carry protocol traffic. All of it repeats in one **120 ms frame**, 
 
 ### Changing the signals
 
-Edit [src/signal_config.h](src/signal_config.h). Frequencies, duty cycles, the pulse width, the pattern segments and every protocol setting (baud rates, messages, addresses, timing) are all plain values there. After rebuilding, the actual generated values (after rounding to whole clock cycles) are shown on the serial console. See [docs/timing.md](docs/timing.md) for what is achievable.
+Edit [src/signal_config.h](src/signal_config.h). Frequencies, duty cycles, the pulse width, the pattern segments and every protocol setting (baud rates, messages, addresses, timing) are all plain values there. This needs [building from source](#building-from-source-optional). After rebuilding, the actual generated values (after rounding to whole clock cycles) are shown on the serial console. See [docs/timing.md](docs/timing.md) for what is achievable.
 
 ## The web guide
 
 1. Power the Pico 2 W. The onboard LED lights up when the guide is available (a few seconds after boot).
 2. Join the Wi-Fi network **`TestBench-XXXX`** (the last four characters are unique per board). Password: **`testbench`**.
 3. The phone or laptop treats the network as a sign-in page (like hotel Wi-Fi) and shows the guide. On Android, tap **Sign in to Wi-Fi network** if the guide does not open by itself. You can also browse to **http://4.3.2.1/**.
+
+On the hotspot, the guide opens on its Wi-Fi page first, since joining your own network is usually the first thing to do. **Start here** in the menu takes you to the lessons.
 
 The hotspot has no internet access; it only serves the guide. The guide works in any modern browser, phones included. The network name and the address are also printed on the serial console.
 
@@ -95,15 +132,6 @@ To forget the network and go back to the hotspot, use any of these:
 The test signals keep running through all of this. Joining, scanning and saving settings never stop or disturb them.
 
 Security: the saved password is stored in plain text in the Pico's flash, and anyone who can open the guide (on the hotspot or your network) can change or forget the network. The guide never shows the saved password. This is meant for a workbench, not for a network you need to protect from the people near it.
-
-The lessons work with **any logic analyzer and any software** (the analyzer's own app, or the free [PulseView](https://sigrok.org/wiki/PulseView)). They describe what to set, not where to click, and every lesson needs at most **8 inputs** and **24 MS/s**, so even the cheapest USB analyzers can follow all of them. Signals are named by Pico pin (GP0, GP10...) rather than analyzer channel.
-
-| Track | Lessons |
-|---|---|
-| Concepts | How a logic analyzer works, voltage levels and thresholds (3.3V, 5V, VREF), the words analyzers use, triggers, common gotchas |
-| Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers |
-| Protocols | UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder |
-| Verify | Sanity check of every analyzer input with a pass/fail checklist |
 
 ## Wiring
 
@@ -132,9 +160,42 @@ Any logic analyzer that reads 3.3V logic works. Connect ground first, then the s
 - Default drive strength is 4 mA. That is plenty for analyzer inputs, which draw almost nothing.
 - During development the board does not need to be connected to anything. It runs fine with nothing attached to the GPIOs.
 
-## Building on Ubuntu Linux
+## Flashing
 
-Tested on Ubuntu 24.04.
+### Drag and drop (no extra tools)
+
+Works the same on Windows, macOS and Linux.
+
+1. Download `logic_test_bench.uf2` from the [latest release](https://github.com/wazp/logicAnalyzerTestBench/releases/latest) (or build it yourself, see below).
+2. Unplug the Pico 2 W.
+3. Hold the **BOOTSEL** button and plug in USB. Release the button.
+4. A drive called `RP2350` appears. Drag `logic_test_bench.uf2` onto it.
+
+The board reboots and starts generating signals immediately. Updating later is the same: flash the new `.uf2` the same way. Your saved Wi-Fi network is kept.
+
+From a Linux terminal, step 4 is:
+
+```bash
+cp ~/Downloads/logic_test_bench.uf2 /media/$USER/RP2350/
+```
+
+### With picotool (optional)
+
+For people building from source. The picotool built by the SDK has no USB support. To flash over USB without pressing BOOTSEL, build picotool yourself with libusb (see the [picotool README](https://github.com/raspberrypi/picotool)), install its udev rules, then:
+
+```bash
+picotool load -x -f build/logic_test_bench.uf2
+```
+
+### Flash layout
+
+The firmware uses about 0.5 MB of the 4 MB flash. The **second-to-last 4 KB sector** holds the saved Wi-Fi network; flashing a new `.uf2` keeps it, so you don't need to set up Wi-Fi again after an update. (Not the last sector: every RP2350 `.uf2` includes a workaround block for boot ROM erratum RP2350-E10 that lands there and erases it.) The firmware refuses to start if it ever grows into the settings sector.
+
+## Building from source (optional)
+
+Only needed if you want to change the firmware, for example the signals in [src/signal_config.h](src/signal_config.h). The release `.uf2` already contains everything. Every push is also built by CI, which keeps the firmware `.uf2` files as downloadable artifacts of the run.
+
+The instructions are for Ubuntu Linux (tested on 24.04).
 
 ### 1. Install the toolchain (once)
 
@@ -171,33 +232,6 @@ The output is `build/logic_test_bench.uf2` (plus `.elf`, `.bin`, `.hex`). The fi
 The firmware build runs `npm run build` in `web/` and embeds the result, so the guide is always up to date with the firmware. To build without Node.js, build the web guide elsewhere, copy `web/dist/index.html` into place and configure with `-DLTB_BUILD_WEB=OFF`.
 
 The board is set to `pico2_w` in [CMakeLists.txt](CMakeLists.txt). This firmware does not support the original Pico or Pico W (RP2040).
-
-## Flashing
-
-### Drag and drop (no extra tools)
-
-1. Unplug the Pico 2 W.
-2. Hold the **BOOTSEL** button and plug in USB. Release the button.
-3. A drive called `RP2350` appears.
-4. Copy the firmware to it:
-
-```bash
-cp build/logic_test_bench.uf2 /media/$USER/RP2350/
-```
-
-The board reboots and starts generating signals immediately.
-
-### With picotool (optional)
-
-The picotool built by the SDK has no USB support. To flash over USB without pressing BOOTSEL, build picotool yourself with libusb (see the [picotool README](https://github.com/raspberrypi/picotool)), install its udev rules, then:
-
-```bash
-picotool load -x -f build/logic_test_bench.uf2
-```
-
-### Flash layout
-
-The firmware uses about 0.5 MB of the 4 MB flash. The **second-to-last 4 KB sector** holds the saved Wi-Fi network; flashing a new `.uf2` keeps it, so you don't need to set up Wi-Fi again after an update. (Not the last sector: every RP2350 `.uf2` includes a workaround block for boot ROM erratum RP2350-E10 that lands there and erases it.) The firmware refuses to start if it ever grows into the settings sector.
 
 ## USB serial console
 
@@ -238,7 +272,7 @@ npm --prefix web test
 
 ## Working on the web guide
 
-The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 43 KB gzipped).
+The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 45 KB gzipped).
 
 ```bash
 npm --prefix web ci
