@@ -35,6 +35,7 @@ On the hotspot the guide runs on your phone, so it can sit next to the analyzer:
 | Concepts | How a logic analyzer works, voltage levels and thresholds (3.3V, 5V, VREF), the words analyzers use, triggers, common gotchas |
 | Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers, checking whether a board is alive, switch bounce |
 | Protocols | UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder |
+| Video and input | VGA video timing, an NES controller, a PS/2 keyboard (with the Video and input preset) |
 | Verify | Sanity check of every analyzer input with a pass/fail checklist |
 
 Every lesson needs at most **8 inputs** and **24 MS/s**, so even the cheapest USB analyzers can follow all of them. Signals are named by Pico pin (GP0, GP10...) rather than analyzer channel, and every expected waveform in the guide is computed from the same configuration the firmware uses, so the guide and the board can't disagree.
@@ -57,7 +58,7 @@ Looking for an analyzer? The [gusmanb LogicAnalyzer](https://github.com/gusmanb/
 
 ## How it works
 
-All signals are generated in hardware (PIO, PWM and DMA). Once started, the CPU only runs the USB serial console and the Wi-Fi web server, so the signals have no software jitter. The basic signals cover square waves, PWM and pulses (sample rates, triggers, measuring); GP10 to GP22 carry the protocols you meet on real boards, and GP26 is a push button that bounces like a real one. Every protocol simulates both sides of its bus, so nothing else needs to be connected.
+All signals are generated in hardware (PIO, PWM and DMA). Once started, the CPU only runs the USB serial console and the Wi-Fi web server, so the signals have no software jitter. The basic signals cover square waves, PWM and pulses (sample rates, triggers, measuring); GP10 to GP22 carry the protocols you meet on real boards, or, with the other [signal preset](#signal-presets), a VGA picture, an NES controller and a PS/2 keyboard. GP26 is a push button that bounces like a real one. Every protocol simulates both sides of its bus, so nothing else needs to be connected.
 
 The guide is a small web app built into the firmware. It needs no internet connection, no app install and no account. All you need is the Pico and this firmware.
 
@@ -95,7 +96,7 @@ The 10 us pulse is a frame marker. Try setting your analyzer to trigger on a "pu
 
 ### Protocol signals
 
-GP10 to GP22 carry protocol traffic. All of it repeats in one **120 ms frame**, played by a single PIO state machine from a timeline computed at boot (see [docs/timing.md](docs/timing.md)). Every protocol simulates **both sides** of its bus (the sensor's ACKs, the flash chip's answer, the device's UART reply), so nothing else needs to be connected.
+With the **Protocols** preset (the default, see [Signal presets](#signal-presets)), GP10 to GP22 carry protocol traffic. All of it repeats in one **120 ms frame**, played by a single PIO state machine from a timeline computed at boot (see [docs/timing.md](docs/timing.md)). Every protocol simulates **both sides** of its bus (the sensor's ACKs, the flash chip's answer, the device's UART reply), so nothing else needs to be connected.
 
 | GPIO | Physical pin | Signal | What it carries |
 |---|---|---|---|
@@ -114,6 +115,41 @@ GP10 to GP22 carry protocol traffic. All of it repeats in one **120 ms frame**, 
 | GP22 | 29 | Quadrature B | |
 
 > **Do not connect the protocol pins to real devices.** I²C and 1-Wire are open-drain buses on real hardware; here every line is driven push-pull. That looks identical to a logic analyzer, but a real sensor, LED strip or bus on these pins could be damaged.
+
+### Signal presets
+
+GP10 to GP22 play one **preset** at a time. GP0 to GP9 and the GP26 button never change.
+
+| Preset | GP10 to GP22 |
+|---|---|
+| **Protocols** (default) | UART, I²C, SPI, WS2812, 1-Wire, IR remote and a quadrature encoder, as listed above |
+| **Video and input** | A VGA picture, an NES controller and a PS/2 keyboard, listed below |
+
+To switch, use any of these:
+
+- **Settings > Signal preset** in the guide. Lessons that need the other preset also show a **Switch** button at the top.
+- Press `p` on the [serial console](#usb-serial-console), then the preset's number.
+- `POST /api/preset` with the form field `preset=protocols` or `preset=video`.
+
+Switching saves the preset and restarts the board, which takes a few seconds, so every signal starts in step again. The board remembers the preset when unplugged, and a saved Wi-Fi network is kept. On the setup hotspot, your phone may need to rejoin `TestBench-XXXX` after the restart.
+
+#### Video and input preset
+
+| GPIO | Physical pin | Signal | What it carries |
+|---|---|---|---|
+| GP10 | 14 | VGA HSYNC | 640x480, active low: 3.84 µs pulse every 32 µs (31.25 kHz) |
+| GP11 | 15 | VGA VSYNC | Active low: 2 lines (64 µs) every 16.8 ms (59.52 Hz) |
+| GP12 | 16 | VGA red | Eight color bars: white, yellow, cyan, green, magenta, red, blue, black |
+| GP13 | 17 | VGA green | 25 MHz pixels (40 ns), each bar 80 pixels wide |
+| GP14 | 19 | VGA blue | Dark during blanking, as monitors expect |
+| GP15 | 20 | NES latch | Once per video frame, at the start of vertical blanking: 12 µs pulse |
+| GP16 | 21 | NES clock | 8 low pulses, 12 µs apart |
+| GP17 | 22 | NES data | The simulated controller: A + Right pressed, then Start in the next frame (low = pressed) |
+| GP18 | 24 | PS/2 clock | Keyboard clock, 12.5 kHz while sending |
+| GP19 | 25 | PS/2 data | The A key: make code 0x1C, then 0xF0 0x1C when released one frame later |
+| GP20-GP22 | 26, 27, 29 | (none) | Held low in this preset |
+
+The VGA pins can drive a real monitor, the one place on the test bench meant for a real device: connect GP12, GP13 and GP14 through 270 Ω resistors to VGA pins 1, 2 and 3, GP10 to pin 13, GP11 to pin 14, and GND to pins 5 to 8 and 10. The pixel clock is 25 MHz rather than the standard 25.175 MHz, which monitors accept. Never connect these pins to a VGA output.
 
 ### The GP26 bouncing button
 
@@ -220,7 +256,7 @@ picotool load -x -f build/logic_test_bench.uf2
 
 ### Flash layout
 
-The firmware uses about 0.5 MB of the 4 MB flash. The **second-to-last 4 KB sector** holds the saved Wi-Fi network; flashing a new `.uf2` keeps it, so you don't need to set up Wi-Fi again after an update. (Not the last sector: every RP2350 `.uf2` includes a workaround block for boot ROM erratum RP2350-E10 that lands there and erases it.) The firmware refuses to start if it ever grows into the settings sector.
+The firmware uses about 0.5 MB of the 4 MB flash. The **second-to-last 4 KB sector** holds the saved Wi-Fi network and the signal preset; flashing a new `.uf2` keeps them, so you don't need to set up Wi-Fi again after an update. (Not the last sector: every RP2350 `.uf2` includes a workaround block for boot ROM erratum RP2350-E10 that lands there and erases it.) The firmware refuses to start if it ever grows into the settings sector.
 
 ## Building from source (optional)
 
@@ -274,12 +310,13 @@ tio /dev/ttyACM0
 
 (`screen /dev/ttyACM0 115200` works too. The baud rate is ignored for USB serial, except that opening the port at **1200 baud** reboots the Pico into BOOTSEL mode, ready for a new `.uf2`. That is handy for flashing without pressing the button: `stty -F /dev/ttyACM0 1200`.)
 
-When the terminal connects, the board prints a banner with the Wi-Fi details and a status table showing, for each pin, the requested and the actual frequency, duty cycle and peripheral. Commands:
+When the terminal connects, the board prints a banner with the Wi-Fi details, the signal preset and a status table showing, for each pin, the requested and the actual frequency, duty cycle and peripheral. Commands:
 
 | Key | Action |
 |---|---|
 | `s` | Print the status table |
 | `w` | Print the Wi-Fi status: hotspot or joined network, IP address and guide address |
+| `p` | List the signal presets, then press a preset's number to switch to it (the board restarts) |
 | `f` | Forget the saved Wi-Fi network (asks for `y` to confirm) and restart into the hotspot |
 | `h` | Print help |
 
@@ -303,7 +340,7 @@ npm --prefix web test
 
 ## Working on the web guide
 
-The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 50 KB gzipped).
+The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 60 KB gzipped).
 
 ```bash
 npm --prefix web ci
@@ -313,7 +350,7 @@ npm --prefix web ci
 npm --prefix web run dev
 ```
 
-That serves the guide at http://localhost:5173 with live reload, no board needed. The dev server also fakes the test bench's API (`web/dev/mockDevice.ts`), so the Wi-Fi page works too. Start it with `MOCK_MODE=joined`, `error` or `none` to see the other states. Lessons are data, one file per lesson in `web/src/lessons/` (`concepts/`, `basics/`, `protocols/`, `verify/`), listed in guide order in `web/src/lessons/index.ts`. The limits every lesson must stay within (8 inputs, 24 MS/s) live in `web/src/model/capture.ts`.
+That serves the guide at http://localhost:5173 with live reload, no board needed. The dev server also fakes the test bench's API (`web/dev/mockDevice.ts`), so the Wi-Fi and preset pages work too. Start it with `MOCK_MODE=joined`, `error` or `none` to see the other states, and `MOCK_PRESET=video` to start in the other preset. Lessons are data, one file per lesson in `web/src/lessons/` (`concepts/`, `basics/`, `protocols/`, `video/`, `verify/`), listed in guide order in `web/src/lessons/index.ts`. The limits every lesson must stay within (8 inputs, 24 MS/s) live in `web/src/model/capture.ts`.
 
 When you change `src/signal_config.h`, regenerate the guide's signal data (the host tests fail until you do):
 
@@ -323,6 +360,10 @@ When you change `src/signal_config.h`, regenerate the guide's signal data (the h
 
 ```bash
 ./build-tests/export_protocols web/src/data/protocols.json
+```
+
+```bash
+./build-tests/export_video web/src/data/video.json
 ```
 
 ### Debugging the Wi-Fi guide
@@ -354,21 +395,24 @@ src/
   status.{h,cpp}          table of what each pin is doing, for the console
   core/timing.{h,cpp}     pure timing math, unit tested on the host
   core/http_request.*     HTTP request parsing, form decoding, JSON escaping (host tested)
-  core/settings.*         saved Wi-Fi settings: validation and flash layout (host tested)
+  core/presets.h          the signal presets for GP10-GP22
+  core/settings.*         saved Wi-Fi network and preset: validation and flash layout (host tested)
   core/scan_list.*        Wi-Fi scan results, one row per network (host tested)
   core/wave.h             one pin's edges over a frame, written by the protocol encoders
-  core/protocols/*        UART, I²C, SPI, WS2812, 1-Wire, NEC IR, quadrature encoders (host tested)
+  core/protocols/*        UART, I²C, SPI, WS2812, 1-Wire, NEC IR, quadrature, VGA, NES, PS/2 encoders (host tested)
   core/protocol_frame.*   places every protocol in the 120 ms frame (host tested)
+  core/video_frame.*      the Video and input preset: two VGA frames with NES and PS/2 (host tested)
   core/timeline.*         merges the pins into PIO words (host tested)
   hw/square_wave.pio      PIO program: square wave with any duty cycle
   hw/square_output.*      sets up one PIO state machine per square wave
   hw/pattern.pio          PIO program: plays (level, duration) segments
   hw/pattern_output.*     pattern encoding, played by DMA (GP9 and GP26)
   hw/timeline.pio         PIO program: plays 13-pin (levels, duration) words
-  hw/timeline_output.*    builds the protocol frame and plays it on GP10-GP22
+  hw/timeline_output.*    builds the active preset's frame and plays it on GP10-GP22
   hw/dma_loop.*           looping DMA into a PIO FIFO (pattern and timeline)
   hw/pwm_output.*         PWM slice setup (duty pair, short pulse)
-  hw/settings_store.*     saved Wi-Fi settings in a reserved flash sector
+  hw/settings_store.*     saved settings in a reserved flash sector
+  preset_control.*        the active preset; saving a new one and restarting
   hw/bootsel_button.*     reads BOOTSEL at runtime (hold 3 s, release: forget Wi-Fi)
   console/serial_console.* USB serial status and commands
   net/wifi.*              joins the saved network, or runs the setup hotspot
@@ -377,6 +421,7 @@ src/
 tests/                    host unit tests (standalone CMake project)
 tools/export_signals.cpp  writes web/src/data/signals.json from the C++ config
 tools/export_protocols.cpp  writes web/src/data/protocols.json (protocol lessons)
+tools/export_video.cpp    writes web/src/data/video.json (video and input lessons)
 tools/prepare_web_content.py  gzips the guide into a C array for the web server
 web/                      the web guide (Preact + TypeScript + Vite)
 web/dev/mockDevice.ts     fake device API for the dev server, not part of the build
@@ -387,7 +432,8 @@ AGENTS.md                 development conventions
 
 ## Roadmap
 
-- VGA 640x480 output (sync and 3-bit color bars), also viewable on a real monitor, with presets to switch the shared pins between protocols and VGA from the guide
+- A "CPU bus" preset: a 6502-style bus (PHI2, R/W, /RESET, a ROM select and the data bus), read half a bus at a time, with a lesson on state (clocked) capture
+- The Commodore IEC serial bus on the pins the Video and input preset leaves free
 - Protocol settings (baud rate, bus speed, message) adjustable from the guide
 - More signals to learn from: CAN, servo PWM, I2S audio, simulated Commodore 64 bus traffic
 - Named signal presets for the Verify track (for example a 24-input channel and skew test)
