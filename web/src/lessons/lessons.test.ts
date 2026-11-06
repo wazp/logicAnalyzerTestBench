@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { captureWindow, modeFor, validateSettings } from '../model/analyzer';
-import { channelForGpio } from '../model/signals';
-import { lessons } from './lessons';
+import { captureWindow, minimumAnalyzer, validateSettings } from '../model/capture';
+import { waveLevelAt } from '../model/wave';
+import { lessons } from './index';
 
 describe('lessons', () => {
   it('have unique ids', () => {
@@ -9,16 +9,42 @@ describe('lessons', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it('cover every protocol', () => {
+    const ids = lessons.filter((l) => l.track === 'protocols').map((l) => l.id);
+    expect(ids).toEqual(['uart', 'i2c', 'spi', 'ws2812', 'onewire', 'ir-remote', 'quadrature']);
+  });
+
+  it('start with the concepts track', () => {
+    expect(lessons.slice(0, 5).map((l) => l.track)).toEqual(Array(5).fill('concepts'));
+  });
+
   for (const lesson of lessons) {
     describe(lesson.id, () => {
+      it('teaches something: explanation sections or a hands-on part', () => {
+        expect((lesson.sections?.length ?? 0) + lesson.parts.length).toBeGreaterThan(0);
+      });
+
+      it('wires pins only when it has a hands-on part', () => {
+        if (lesson.parts.length === 0) expect(lesson.gpios).toEqual([]);
+        else expect(lesson.gpios.length).toBeGreaterThan(0);
+      });
+
+      it('never needs more inputs than a small analyzer has', () => {
+        for (const part of lesson.parts) expect(part.settings.gpios.length).toBeLessThanOrEqual(minimumAnalyzer.inputs);
+      });
+
+      it('never mentions analyzer channel numbers', () => {
+        const text = JSON.stringify(lesson);
+        expect(text).not.toMatch(/\bCH\d/);
+      });
+
       for (const part of lesson.parts) {
-        it(`"${part.title}" has settings the analyzer accepts`, () => {
+        it(`"${part.title}" has settings a small analyzer can follow`, () => {
           expect(validateSettings(part.settings)).toEqual([]);
         });
 
-        it(`"${part.title}" only enables channels that are wired`, () => {
-          const wired = lesson.gpios.map(channelForGpio);
-          for (const c of part.settings.channels) expect(wired).toContain(c);
+        it(`"${part.title}" only records pins the lesson wires`, () => {
+          for (const g of part.settings.gpios) expect(lesson.gpios).toContain(g);
         });
 
         it(`"${part.title}" views fit inside the capture window`, () => {
@@ -29,8 +55,15 @@ describe('lessons', () => {
           }
         });
 
-        it(`"${part.title}" uses a valid channel mode`, () => {
-          expect(() => modeFor(part.settings.channels)).not.toThrow();
+        it(`"${part.title}" views start their trigger edge at t = 0`, () => {
+          const t = part.settings.trigger;
+          if (t.type !== 'edge') return;
+          for (const v of part.views) {
+            const row = v.rows?.find((r) => r.gpio === t.gpio);
+            if (!row) continue;
+            expect(waveLevelAt(row.wave, -1)).toBe(t.edge === 'rising' ? 0 : 1);
+            expect(waveLevelAt(row.wave, 0)).toBe(t.edge === 'rising' ? 1 : 0);
+          }
         });
       }
     });

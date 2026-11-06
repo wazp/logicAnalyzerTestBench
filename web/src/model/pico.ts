@@ -36,5 +36,5 @@ export function physicalPinForGpio(gpio: number): number {
   return p.pin;
 }
 
-/** Ground pins closest to the signal pins, in the order we recommend them. */
-export const recommendedGroundPins = [3, 8, 13];
+/** Every ground pin. AGND (33) is the ADC's reference but joins the same ground, and the ADC is unused. */
+export const groundPins = [3, 8, 13, 18, 23, 28, 33, 38];

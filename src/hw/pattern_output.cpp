@@ -3,29 +3,39 @@
 #include <cstdio>
 
 #include "hardware/clocks.h"
-#include "hardware/dma.h"
 #include "hardware/pio.h"
+#include "hw/dma_loop.h"
 #include "pattern.pio.h"
 #include "status.h"
 
 namespace {
 
 constexpr size_t kMaxSegments = 64;
+constexpr size_t kMaxPatterns = 2;  // GP9 and GP26.
 
-// Encoded pattern words. The data DMA channel streams these into the PIO.
-uint32_t pattern_words[kMaxSegments];
+struct Player {
+    // Encoded pattern words. The data DMA channel streams these into the PIO.
+    uint32_t words[kMaxSegments];
+    // The control DMA channel copies this pointer into the data channel's read
+    // address (and triggers it) each time the data channel finishes a pass.
+    const uint32_t* start;
+};
 
-// The control DMA channel copies this pointer into the data channel's read
-// address (and triggers it) each time the data channel finishes a pass.
-const uint32_t* pattern_start = pattern_words;
+Player players[kMaxPatterns];
+size_t player_count = 0;
 
 }  // namespace
 
 void pattern_output_init(unsigned pin, const char* name, unsigned pio_index, unsigned sm,
                          const timing::PatternSegment* segments, size_t segment_count) {
+    if (player_count == kMaxPatterns) {
+        panic("GP%u (%s): more than %u patterns", pin, name, static_cast<unsigned>(kMaxPatterns));
+    }
+    Player& p = players[player_count++];
+    p.start = p.words;
+
     const uint32_t sys_hz = clock_get_hz(clk_sys);
-    const timing::PatternEncoding e =
-        timing::encode_pattern(sys_hz, segments, segment_count, pattern_words, kMaxSegments);
+    const timing::PatternEncoding e = timing::encode_pattern(sys_hz, segments, segment_count, p.words, kMaxSegments);
     if (!e.valid) {
         panic("GP%u (%s): %s", pin, name, e.error);
     }
@@ -46,28 +56,8 @@ void pattern_output_init(unsigned pin, const char* name, unsigned pio_index, uns
     pio_sm_init(pio, sm, offset, &c);
     pio_sm_set_pins_with_mask(pio, sm, 0, 1u << pin);
 
-    // --- DMA: data channel streams the words, control channel rewinds it ---
-    const uint data_ch = static_cast<uint>(dma_claim_unused_channel(true));
-    const uint ctrl_ch = static_cast<uint>(dma_claim_unused_channel(true));
-
-    dma_channel_config dc = dma_channel_get_default_config(data_ch);
-    channel_config_set_transfer_data_size(&dc, DMA_SIZE_32);
-    channel_config_set_read_increment(&dc, true);
-    channel_config_set_write_increment(&dc, false);
-    channel_config_set_dreq(&dc, pio_get_dreq(pio, sm, true));  // Pace by FIFO space.
-    channel_config_set_chain_to(&dc, ctrl_ch);
-    dma_channel_configure(data_ch, &dc, &pio->txf[sm], pattern_words, e.word_count, false);
-
-    dma_channel_config cc = dma_channel_get_default_config(ctrl_ch);
-    channel_config_set_transfer_data_size(&cc, DMA_SIZE_32);
-    channel_config_set_read_increment(&cc, false);
-    channel_config_set_write_increment(&cc, false);
-    // Writing READ_ADDR_TRIG restarts the data channel from the top.
-    dma_channel_configure(ctrl_ch, &cc, &dma_hw->ch[data_ch].al3_read_addr_trig, &pattern_start, 1, false);
-
-    // Start streaming now: DMA fills the FIFO and then waits, because the
-    // state machine is not consuming yet.
-    dma_channel_start(data_ch);
+    // --- DMA loop: streams the words forever ---
+    dma_loop_start(pio, sm, p.words, e.word_count, &p.start);
 
     SignalStatus s = {};
     s.pin = pin;
@@ -77,8 +67,8 @@ void pattern_output_init(unsigned pin, const char* name, unsigned pio_index, uns
     s.actual_hz = static_cast<double>(sys_hz) / static_cast<double>(e.total_cycles);
     uint64_t high_cycles = 0;
     for (size_t i = 0; i < e.word_count; ++i) {
-        if (pattern_words[i] & 1u) {
-            high_cycles += (pattern_words[i] >> 1) + timing::kPatternSegmentOverheadCycles;
+        if (p.words[i] & 1u) {
+            high_cycles += (p.words[i] >> 1) + timing::kPatternSegmentOverheadCycles;
         }
     }
     s.duty_percent = 100.0 * static_cast<double>(high_cycles) / static_cast<double>(e.total_cycles);

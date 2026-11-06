@@ -1,0 +1,157 @@
+# Builds and tests everything on every push: the host unit tests (including
+# the checks that the guide's JSON data matches the firmware), the web guide,
+# and the firmware itself. The firmware .uf2 files are kept as artifacts, so
+# anyone can download a build without installing a toolchain.
+#
+# Pushing a version tag (v0.4.0) also publishes a GitHub release with the
+# firmware attached, once every job above has passed. The tag must match
+# pico_set_program_version in CMakeLists.txt.
+
+name: CI
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PICO_SDK_VERSION: 2.3.1
+
+jobs:
+  host-tests:
+    name: Host tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S tests -B build-tests
+      - name: Build
+        run: cmake --build build-tests --parallel
+      - name: Test
+        run: ctest --test-dir build-tests --output-on-failure
+
+  web:
+    name: Web guide
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit -p .
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
+
+  firmware:
+    name: Firmware
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the ARM toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build gcc-arm-none-eabi \
+            libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Cache the Pico SDK
+        id: sdk-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/pico-sdk
+          key: pico-sdk-${{ env.PICO_SDK_VERSION }}
+
+      - name: Get the Pico SDK
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --branch "$PICO_SDK_VERSION" --depth 1 https://github.com/raspberrypi/pico-sdk.git ~/pico-sdk
+          git -C ~/pico-sdk submodule update --init --depth 1
+
+      - name: Build (normal and network debug)
+        run: |
+          set -o pipefail  # Keep a failed build failing through tee.
+          export PICO_SDK_PATH="$HOME/pico-sdk"
+          cmake -S . -B build -G Ninja
+          cmake --build build 2>&1 | tee build.log
+          cmake -S . -B build-debug -G Ninja -DLTB_NET_DEBUG=ON
+          cmake --build build-debug 2>&1 | tee -a build.log
+
+      - name: No warnings from our sources
+        run: |
+          if grep -E "^$GITHUB_WORKSPACE/src/.*warning:" build.log; then
+            echo "::error::The firmware build has warnings in src/ (AGENTS.md requires none)."
+            exit 1
+          fi
+
+      - name: Firmware size
+        run: arm-none-eabi-size build/logic_test_bench.elf
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: logic_test_bench-${{ github.sha }}
+          path: |
+            build/logic_test_bench.uf2
+            build-debug/logic_test_bench.uf2
+          if-no-files-found: error
+
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [host-tests, web, firmware]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # The firmware reports this version on the console and the Wi-Fi page,
+      # so a release must never ship with a different one.
+      - name: Tag matches the firmware version
+        run: |
+          version=$(sed -n 's/^pico_set_program_version(logic_test_bench "\(.*\)")$/\1/p' CMakeLists.txt)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match pico_set_program_version \"$version\" in CMakeLists.txt."
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: logic_test_bench-${{ github.sha }}
+          path: artifact
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir release
+          cp artifact/build/logic_test_bench.uf2 release/logic_test_bench.uf2
+          cp artifact/build-debug/logic_test_bench.uf2 release/logic_test_bench-net-debug.uf2
+          cat > notes.md <<'NOTES'
+          **To install:** download `logic_test_bench.uf2`, hold the Pico 2 W's BOOTSEL button while plugging it into USB, and drag the file onto the `RP2350` drive. Updating keeps your saved Wi-Fi network. Only for the Raspberry Pi Pico 2 W (not the original Pico or Pico W).
+
+          `logic_test_bench-net-debug.uf2` is the same firmware with network logging on the USB serial console, for when a phone joins the hotspot but the guide does not appear.
+          NOTES
+          # --notes is prepended to the generated changelog. A tag with a suffix
+          # (v0.5.0-rc1, matching that version in CMakeLists.txt) becomes a prerelease.
+          prerelease=""
+          case "$GITHUB_REF_NAME" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" release/*.uf2 \
+            --title "$GITHUB_REF_NAME" --notes "$(cat notes.md)" --generate-notes $prerelease

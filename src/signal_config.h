@@ -15,7 +15,8 @@
 namespace config {
 
 // One PIO state machine per square wave, so every pin gets an independent
-// frequency. PIO2 is left free for the CYW43 driver or future modes.
+// frequency. PIO0 and PIO1 hold the signals; PIO2 holds only the bounce
+// signal, and the CYW43 Wi-Fi driver takes its next free state machine.
 struct SquareSignalConfig {
     unsigned pin;
     const char* name;
@@ -85,5 +86,113 @@ constexpr const char* kPatternName = "irregular pattern, 1 ms";
 // The pattern state machine lives next to the 10 kHz and 100 kHz square waves.
 constexpr unsigned kPatternPioIndex = 1;
 constexpr unsigned kPatternSm = 2;
+
+// GP26: a push button pressed every 500 ms, the way a real one looks: active
+// low (pulled up, the button connects to ground), with contact bounce on
+// press and release. Played by the same PIO pattern player as GP9. The burst
+// is irregular on purpose: a 220 us stretch of "released" in the middle of the
+// press, and 2-3 us spikes that only fast sample rates catch.
+inline constexpr timing::PatternSegment kBounceSegments[] = {
+    // Press: 6 falling edges before the contacts settle, 583 us after the first.
+    {false, 40000},
+    {true, 15000},
+    {false, 120000},
+    {true, 60000},
+    {false, 8000},
+    {true, 220000},
+    {false, 90000},
+    {true, 3000},
+    {false, 25000},
+    {true, 2000},
+    {false, 199417000},  // Held down: 200 ms from the first edge.
+    // Release: 3 rising edges, settled 100 us after the first.
+    {true, 20000},
+    {false, 6000},
+    {true, 70000},
+    {false, 4000},
+    {true, 299900000},  // Released for the rest of the 500 ms cycle.
+};
+
+constexpr size_t kBounceSegmentCount = sizeof(kBounceSegments) / sizeof(kBounceSegments[0]);
+constexpr const char* kBounceName = "bouncing button, 500 ms";
+
+// PIO2, so PIO0 and PIO1 stay as they were. The CYW43 driver needs one state
+// machine and a few instructions, which PIO2 still has.
+constexpr unsigned kBouncePioIndex = 2;
+constexpr unsigned kBounceSm = 0;
+
+// ---------------------------------------------------------------------------
+// Protocol signals on GP10-GP22 (see src/core/protocol_frame.h)
+// ---------------------------------------------------------------------------
+// One 120 ms frame repeats forever. Times are in microseconds from the start
+// of the frame. Every protocol simulates both sides of its bus, so no
+// external device or wiring is needed. Several protocols overlap in time,
+// each on its own pins.
+struct ProtocolConfig {
+    uint32_t frame_us = 120000;
+
+    // UART, 8N1. Message n (1..count) is uart_text followed by n and "\r\n",
+    // e.g. "Test bench #1\r\n"; the simulated device answers uart_reply.
+    uint32_t uart_baud = 115200;
+    const char* uart_text = "Test bench #";
+    const char* uart_reply = "OK\r\n";
+    unsigned uart_count = 4;
+    uint32_t uart_first_us = 1000;
+    uint32_t uart_period_us = 30000;
+    uint32_t uart_reply_delay_us = 1000;  // From the end of the message.
+
+    // I²C: a TMP102-style temperature sensor. Each read writes the register
+    // pointer, then reads two bytes after a repeated START. The last slot of
+    // the frame addresses a device that is not there, to show a NAK.
+    uint32_t i2c_hz = 100000;
+    uint8_t i2c_address = 0x48;
+    uint8_t i2c_missing_address = 0x49;
+    uint8_t i2c_register = 0x00;     // TMP102 temperature register.
+    uint16_t i2c_value = 0x1900;     // 25.0 C: 12-bit, 0.0625 C per bit, left aligned.
+    unsigned i2c_count = 12;         // Transactions per frame; the last one is the NAK.
+    uint32_t i2c_first_us = 2000;
+    uint32_t i2c_period_us = 10000;
+
+    // SPI mode 0: reading the JEDEC ID of a W25Q128 flash chip.
+    uint32_t spi_hz = 1000000;
+    uint8_t spi_command = 0x9F;
+    uint8_t spi_reply[3] = {0xEF, 0x40, 0x18};  // Winbond, SPI NOR, 128 Mbit.
+    unsigned spi_count = 12;
+    uint32_t spi_first_us = 4000;
+    uint32_t spi_period_us = 10000;
+
+    // WS2812: a strip of LEDs showing a rainbow that moves one LED per update.
+    unsigned ws2812_leds = 8;
+    uint8_t ws2812_brightness = 32;  // Out of 255, per color.
+    unsigned ws2812_count = 12;
+    uint32_t ws2812_first_us = 6000;
+    uint32_t ws2812_period_us = 10000;
+
+    // 1-Wire: a DS18B20 temperature sensor. Start a conversion, then later
+    // read the 9-byte scratchpad (temperature, limits, config, CRC).
+    uint32_t onewire_convert_us = 5000;
+    uint32_t onewire_read_us = 65000;
+    uint16_t onewire_raw_temp = 0x0191;  // 25.0625 C: 0.0625 C per bit.
+
+    // IR remote (NEC), as an IR receiver module outputs it: one key press,
+    // then one repeat code because the key is still held.
+    uint8_t ir_address = 0x00;
+    uint8_t ir_command = 0x45;
+    // The repeat code follows 108 ms after the key press and lasts 11.8 ms,
+    // so the key press must start in the first 0.18 ms of the frame.
+    uint32_t ir_first_us = 100;
+
+    // Quadrature encoder: forward, then back the same number of steps, so the
+    // frame ends where it started.
+    unsigned quadrature_steps = 60;
+    uint32_t quadrature_step_us = 1000;
+    uint32_t quadrature_first_us = 500;
+};
+
+inline constexpr ProtocolConfig kProtocols{};
+
+// The timeline state machine: the free one next to the pattern.
+constexpr unsigned kTimelinePioIndex = 1;
+constexpr unsigned kTimelineSm = 3;
 
 }  // namespace config

@@ -101,6 +101,16 @@
       "actualHz": 1000,
       "dutyPercent": 4.1,
       "segments": [{"level": 1, "ns": 10000}, {"level": 0, "ns": 5000}, {"level": 1, "ns": 20000}, {"level": 0, "ns": 2000}, {"level": 1, "ns": 1000}, {"level": 0, "ns": 1000}, {"level": 1, "ns": 1000}, {"level": 0, "ns": 50000}, {"level": 1, "ns": 3000}, {"level": 0, "ns": 3000}, {"level": 1, "ns": 3000}, {"level": 0, "ns": 3000}, {"level": 1, "ns": 3000}, {"level": 0, "ns": 895000}]
+    },
+    {
+      "gpio": 26,
+      "name": "bouncing button, 500 ms",
+      "kind": "bounce",
+      "peripheral": "PIO2 SM0+DMA",
+      "requestedHz": null,
+      "actualHz": 2,
+      "dutyPercent": 60.058,
+      "segments": [{"level": 0, "ns": 40000}, {"level": 1, "ns": 15000}, {"level": 0, "ns": 120000}, {"level": 1, "ns": 60000}, {"level": 0, "ns": 8000}, {"level": 1, "ns": 220000}, {"level": 0, "ns": 90000}, {"level": 1, "ns": 3000}, {"level": 0, "ns": 25000}, {"level": 1, "ns": 2000}, {"level": 0, "ns": 199417000}, {"level": 1, "ns": 20000}, {"level": 0, "ns": 6000}, {"level": 1, "ns": 70000}, {"level": 0, "ns": 4000}, {"level": 1, "ns": 299900000}]
     }
   ]
 }

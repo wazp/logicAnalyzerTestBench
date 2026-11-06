@@ -11,10 +11,12 @@
 #include "console/serial_console.h"
 #include "hardware/pio.h"
 #include "hardware/pwm.h"
+#include "hardware/sync.h"
 #include "hw/bootsel_button.h"
 #include "hw/pattern_output.h"
 #include "hw/pwm_output.h"
 #include "hw/square_output.h"
+#include "hw/timeline_output.h"
 #include "net/wifi.h"
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"
@@ -31,12 +33,40 @@ bi_decl(bi_1pin_with_name(pins::kPwm25, "PWM 25% duty"));
 bi_decl(bi_1pin_with_name(pins::kPwm75, "PWM 75% duty"));
 bi_decl(bi_1pin_with_name(pins::kPulse, "Short periodic pulse"));
 bi_decl(bi_1pin_with_name(pins::kPattern, "Irregular pattern"));
+bi_decl(bi_1pin_with_name(pins::kUartTx, "UART TX"));
+bi_decl(bi_1pin_with_name(pins::kUartRx, "UART RX (simulated device)"));
+bi_decl(bi_1pin_with_name(pins::kI2cScl, "I2C SCL"));
+bi_decl(bi_1pin_with_name(pins::kI2cSda, "I2C SDA"));
+bi_decl(bi_1pin_with_name(pins::kSpiSck, "SPI SCK"));
+bi_decl(bi_1pin_with_name(pins::kSpiMosi, "SPI MOSI"));
+bi_decl(bi_1pin_with_name(pins::kSpiMiso, "SPI MISO (simulated device)"));
+bi_decl(bi_1pin_with_name(pins::kSpiCs, "SPI CS"));
+bi_decl(bi_1pin_with_name(pins::kWs2812, "WS2812 data"));
+bi_decl(bi_1pin_with_name(pins::kOneWire, "1-Wire"));
+bi_decl(bi_1pin_with_name(pins::kIrRemote, "IR remote (NEC)"));
+bi_decl(bi_1pin_with_name(pins::kQuadratureA, "Quadrature A"));
+bi_decl(bi_1pin_with_name(pins::kQuadratureB, "Quadrature B"));
+bi_decl(bi_1pin_with_name(pins::kBounce, "Bouncing button"));
+
+// Starts every signal state machine in all three PIO blocks (PIO1 enables its
+// neighbors PIO0 and PIO2 in the same write), then both PWM slices. Runs from
+// RAM with interrupts off so the two writes are a few cycles apart: run from
+// flash, an XIP cache miss between them put the two groups about 3 us apart
+// (measured on a board: GP3 rose 3.0 us after GP8). PIO goes first because
+// its CTRL value takes a dozen instructions to assemble; the PWM write is a
+// single store after it.
+static void __no_inline_not_in_flash_func(start_signals)(uint32_t pwm_slice_mask, const uint32_t (&sm_mask)[3]) {
+    const uint32_t irq = save_and_disable_interrupts();
+    pio_enable_sm_multi_mask_in_sync(pio1, sm_mask[0], sm_mask[1], sm_mask[2]);
+    pwm_set_mask_enabled(pwm_slice_mask);
+    restore_interrupts(irq);
+}
 
 int main() {
     stdio_init_all();
 
     // --- Configure everything while stopped ---
-    uint32_t sm_mask[2] = {0, 0};  // Enabled state machines per PIO block.
+    uint32_t sm_mask[3] = {0, 0, 0};  // Enabled state machines per PIO block.
     for (const auto& sq : config::kSquareSignals) {
         square_output_init(sq);
         sm_mask[sq.pio_index] |= 1u << sq.sm;
@@ -45,17 +75,21 @@ int main() {
     pattern_output_init(pins::kPattern, config::kPatternName, config::kPatternPioIndex, config::kPatternSm,
                         config::kPatternSegments, config::kPatternSegmentCount);
     sm_mask[config::kPatternPioIndex] |= 1u << config::kPatternSm;
+    pattern_output_init(pins::kBounce, config::kBounceName, config::kBouncePioIndex, config::kBounceSm,
+                        config::kBounceSegments, config::kBounceSegmentCount);
+    sm_mask[config::kBouncePioIndex] |= 1u << config::kBounceSm;
+
+    // Protocol signals on GP10-GP22, one state machine for all of them.
+    timeline_output_init(config::kTimelinePioIndex, config::kTimelineSm);
+    sm_mask[config::kTimelinePioIndex] |= 1u << config::kTimelineSm;
 
     const unsigned pair_slice = pwm_output_init_pair(config::kPwmPair);
     const unsigned pulse_slice = pwm_output_init_pulse(config::kPulse);
 
     // --- Start ---
-    // Both PWM slices start on the same cycle. The PIO state machines in PIO0
-    // and PIO1 then start together on one later cycle, so all square waves and
-    // the pattern share rising edges at t = 0. PWM and PIO are not cycle
-    // aligned with each other (a few cycles apart).
-    pwm_set_mask_enabled((1u << pair_slice) | (1u << pulse_slice));
-    pio_enable_sm_multi_mask_in_sync(pio0, 0, sm_mask[0], sm_mask[1]);
+    // All square waves, both patterns and the protocol frame share t = 0; the
+    // PWM outputs start a few cycles later (see start_signals).
+    start_signals((1u << pair_slice) | (1u << pulse_slice), sm_mask);
 
     // Wi-Fi comes last, so a radio problem can never delay or disturb the
     // signals. It serves the web guide from flash; see src/net/wifi.h.

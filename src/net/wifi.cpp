@@ -3,7 +3,6 @@
 #include <cstdio>
 #include <cstring>
 
-#include "hardware/pio.h"
 #include "hardware/watchdog.h"
 #include "hw/settings_store.h"
 #include "lwip/apps/mdns.h"
@@ -160,12 +159,11 @@ bool wifi_start() {
         saved = settings::WifiSettings{};
     }
 
-    // The CYW43 driver takes the first PIO state machine it finds free. PIO0
-    // is full, but PIO1 SM3 is free and we want to keep it for future signal
-    // modes, so hold it while the driver starts. The driver then lands on PIO2.
-    pio_sm_claim(pio1, 3);
+    // The CYW43 driver takes the first PIO with a free state machine. The
+    // signals have already claimed every state machine in PIO0 and PIO1 and
+    // SM0 of PIO2 (see main.cpp), so the driver lands on PIO2, as AGENTS.md
+    // requires.
     const int err = cyw43_arch_init();
-    pio_sm_unclaim(pio1, 3);
     if (err != 0) {
         printf("Wi-Fi: radio init failed (%d), continuing without the web guide\n", err);
         return false;

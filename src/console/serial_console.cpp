@@ -20,6 +20,20 @@ void print_help() {
     printf("  h   print this help\n");
 }
 
+// "-" for no single frequency, otherwise Hz, kHz or MHz. newlib's %g keeps
+// trailing zeros and switches to odd exponent forms above 1e5, so scale first.
+void format_hz(char* out, size_t size, double hz) {
+    if (hz <= 0.0) {
+        snprintf(out, size, "-");
+    } else if (hz >= 1e6) {
+        snprintf(out, size, "%.6g MHz", hz / 1e6);
+    } else if (hz >= 1e3) {
+        snprintf(out, size, "%.6g kHz", hz / 1e3);
+    } else {
+        snprintf(out, size, "%.6g Hz", hz);
+    }
+}
+
 void print_status() {
     printf("\nclk_sys = %.3f MHz, uptime %llu ms\n", clock_get_hz(clk_sys) / 1e6,
            static_cast<unsigned long long>(to_ms_since_boot(get_absolute_time())));
@@ -28,13 +42,9 @@ void print_status() {
     for (size_t i = 0; i < status_count(); ++i) {
         const SignalStatus& s = status_get(i);
         char requested[20];
-        if (s.requested_hz > 0.0) {
-            snprintf(requested, sizeof(requested), "%.6g Hz", s.requested_hz);
-        } else {
-            snprintf(requested, sizeof(requested), "-");
-        }
+        format_hz(requested, sizeof(requested), s.requested_hz);
         char actual[20];
-        snprintf(actual, sizeof(actual), "%.6g Hz", s.actual_hz);
+        format_hz(actual, sizeof(actual), s.actual_hz);
         printf("GP%-3u %-24s %-14s %-16s %-16s %6.2f%%  %s\n", s.pin, s.name, s.peripheral, requested, actual,
                s.duty_percent, s.detail);
     }

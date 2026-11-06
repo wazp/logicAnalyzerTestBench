@@ -42,6 +42,17 @@ add_executable(logic_test_bench
     src/core/http_request.cpp
     src/core/settings.cpp
     src/core/scan_list.cpp
+    src/core/timeline.cpp
+    src/core/protocol_frame.cpp
+    src/core/protocols/uart.cpp
+    src/core/protocols/i2c.cpp
+    src/core/protocols/spi.cpp
+    src/core/protocols/ws2812.cpp
+    src/core/protocols/onewire.cpp
+    src/core/protocols/nec.cpp
+    src/core/protocols/quadrature.cpp
+    src/hw/dma_loop.cpp
+    src/hw/timeline_output.cpp
     src/hw/settings_store.cpp
     src/hw/bootsel_button.cpp
     src/hw/square_output.cpp
@@ -52,6 +63,7 @@ add_executable(logic_test_bench
 
 pico_generate_pio_header(logic_test_bench ${CMAKE_CURRENT_LIST_DIR}/src/hw/square_wave.pio)
 pico_generate_pio_header(logic_test_bench ${CMAKE_CURRENT_LIST_DIR}/src/hw/pattern.pio)
+pico_generate_pio_header(logic_test_bench ${CMAKE_CURRENT_LIST_DIR}/src/hw/timeline.pio)
 
 target_include_directories(logic_test_bench PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/src
@@ -63,7 +75,10 @@ target_include_directories(logic_test_bench PRIVATE
 # Warnings only for our own sources, not the SDK.
 set_source_files_properties(
     src/main.cpp src/status.cpp src/core/timing.cpp src/core/http_request.cpp src/core/settings.cpp
-    src/core/scan_list.cpp src/hw/settings_store.cpp src/hw/bootsel_button.cpp src/hw/square_output.cpp
+    src/core/scan_list.cpp src/core/timeline.cpp src/core/protocol_frame.cpp src/core/protocols/uart.cpp
+    src/core/protocols/i2c.cpp src/core/protocols/spi.cpp src/core/protocols/ws2812.cpp src/core/protocols/onewire.cpp
+    src/core/protocols/nec.cpp src/core/protocols/quadrature.cpp src/hw/dma_loop.cpp src/hw/timeline_output.cpp
+    src/hw/settings_store.cpp src/hw/bootsel_button.cpp src/hw/square_output.cpp
     src/hw/pattern_output.cpp src/hw/pwm_output.cpp src/console/serial_console.cpp src/net/wifi.cpp
     src/net/http_server.cpp
     PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra"
@@ -136,6 +151,6 @@ pico_enable_stdio_uart(logic_test_bench 0)
 
 pico_set_program_name(logic_test_bench "logic_test_bench")
 pico_set_program_description(logic_test_bench "Programmable digital test signal generator for logic analyzers")
-pico_set_program_version(logic_test_bench "0.3.0")
+pico_set_program_version(logic_test_bench "0.4.0")
 
 pico_add_extra_outputs(logic_test_bench)

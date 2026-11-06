@@ -1,50 +1,77 @@
-import { analyzer, captureWindow, describeTrigger, modeFor, validateSettings, type CaptureSettings } from '../model/analyzer';
-import { formatCount, formatRate, formatTime } from '../model/format';
+import { Fragment } from 'preact';
+import { shortLabel } from '../model/board';
+import {
+  captureWindow,
+  describeTrigger,
+  samplesFor,
+  samplesNeeded,
+  validateSettings,
+  type CaptureSettings,
+} from '../model/capture';
+import { formatCount, formatPercent, formatRate, formatTime } from '../model/format';
 
-function channelList(chs: number[]): string {
-  const sorted = [...chs].sort((a, b) => a - b);
-  const contiguous = sorted.every((c, i) => i === 0 || c === sorted[i - 1] + 1);
-  return contiguous && sorted.length > 2 ? `${sorted[0]} to ${sorted[sorted.length - 1]}` : sorted.join(', ');
-}
-
-/** The settings to enter in the analyzer app, plus what they add up to. */
+/** What to set up in the analyzer software, plus what it adds up to. */
 export function SettingsCard({ settings }: { settings: CaptureSettings }) {
   const w = captureWindow(settings);
-  const mode = modeFor(settings.channels);
   const issues = validateSettings(settings);
+  // Apps set the length as a time, a sample count or (for the pre-trigger part) a percentage,
+  // so the card gives all three. Counts are tied to the rate, hence the note on "or faster".
+  const samples = (ns: number) => `${formatCount(samplesFor(settings, ns))} samples`;
+  const triggerShare = (100 * w.preNs) / (w.preNs + w.postNs);
   return (
     <div class="settings-card">
-      <div class="settings-title">{analyzer.appName} settings</div>
+      <div class="settings-title">Capture settings</div>
       <dl>
-        <dt>Channels</dt>
-        <dd>{channelList(settings.channels)}</dd>
+        <dt>Record</dt>
+        <dd>
+          {/* The separator sits outside the nowrap span so the list can break between pins. */}
+          {settings.gpios.map((g, i) => (
+            <Fragment key={g}>
+              {i > 0 && ', '}
+              <span class="nowrap">
+                GP{g} <span class="muted">({shortLabel(g)})</span>
+              </span>
+            </Fragment>
+          ))}
+        </dd>
         <dt>Sample rate</dt>
         <dd>
-          {formatRate(settings.sampleRateHz)} <span class="muted">({formatCount(settings.sampleRateHz)} Hz)</span>
+          {formatRate(settings.sampleRateHz)}{' '}
+          <span class="muted">or faster, then scale the sample counts up to match</span>
         </dd>
-        <dt>Pre-trigger</dt>
-        <dd>{formatCount(settings.preSamples)} samples</dd>
-        <dt>Post-trigger</dt>
-        <dd>{formatCount(settings.postSamples)} samples</dd>
+        <dt>Length</dt>
+        <dd>
+          {formatTime(w.postNs)} after the trigger <span class="muted">({samples(w.postNs)})</span>
+          {w.preNs > 0 && (
+            <span class="muted">
+              , {formatTime(w.preNs)} before if your analyzer keeps it ({samples(w.preNs)})
+            </span>
+          )}
+        </dd>
         <dt>Trigger</dt>
         <dd>{describeTrigger(settings.trigger)}</dd>
-        {settings.burstCount && (
+        {settings.decoder && (
           <>
-            <dt>Burst</dt>
-            <dd>{settings.burstCount}</dd>
+            <dt>Decoder</dt>
+            <dd>{settings.decoder}</dd>
           </>
         )}
       </dl>
       <div class="settings-derived">
         <div>
-          <span class="muted">Window</span> {formatTime(-w.preNs)} to +{formatTime(w.postNs)}
+          <span class="muted">Inputs</span> {settings.gpios.length}
         </div>
         <div>
           <span class="muted">One sample</span> {formatTime(1e9 / settings.sampleRateHz)}
         </div>
         <div>
-          <span class="muted">Buffer mode</span> channels up to {mode.maxChannel}, max {formatCount(mode.maxPostSamples)} post
+          <span class="muted">Samples per input</span> about {formatCount(samplesNeeded(settings))}
         </div>
+        {w.preNs > 0 && (
+          <div>
+            <span class="muted">Trigger at</span> {formatPercent(Math.round(triggerShare))} of the capture
+          </div>
+        )}
       </div>
       {issues.length > 0 && (
         <ul class="settings-issues">

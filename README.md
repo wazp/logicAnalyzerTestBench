@@ -1,14 +1,51 @@
 # Logic Analyzer Test Bench
 
-Firmware for the **Raspberry Pi Pico 2 W** (RP2350) that turns the board into a programmable digital signal generator. It outputs ten known, simultaneous 3.3V test signals so you can learn and verify a logic analyzer: sample rates, triggers, pulse width measurement, protocol decoders (later), and so on.
+**Learn to use a logic analyzer on signals you already know the answer to.**
 
-All signals are generated in hardware (PIO, PWM and DMA). Once started, the CPU only runs the USB serial console and the Wi-Fi web server, so the signals have no software jitter.
+A logic analyzer is easy to plug in and hard to trust at first: is that glitch real, or is the sample rate too low? Is the decoder wrong, or the wiring? This project turns a **Raspberry Pi Pico 2 W** into a practice board that answers those questions. It outputs 24 known 3.3V test signals and carries its own guided lessons, served over Wi-Fi to your phone or computer. Each lesson tells you what to connect, how to set up the capture and the trigger, and shows the capture you should get, so you can compare and find out where yours differs.
 
-The board also carries its own **guided lessons**. It creates a Wi-Fi network, and any phone or laptop that joins it gets a step-by-step guide: where to plug in, which analyzer settings and trigger to use, and what the capture should look like. All you need is the Pico and this firmware.
+It works with **any logic analyzer and any software**: the analyzer's own app, or the free [PulseView](https://sigrok.org/wiki/PulseView). The lessons describe what to set, not where to click.
+
+> **No building, no tools, no install.** Everything is in one firmware file: the 24 signals, the Wi-Fi hotspot and the complete guide. Download `logic_test_bench.uf2` from the [latest release](https://github.com/wazp/logicAnalyzerTestBench/releases/latest), drag it onto the Pico 2 W, and you are done. You never need the build instructions further down unless you want to change the firmware.
+
+## What you learn
+
+| Track | Lessons |
+|---|---|
+| Concepts | How a logic analyzer works, voltage levels and thresholds (3.3V, 5V, VREF), the words analyzers use, triggers, common gotchas |
+| Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers, checking whether a board is alive, switch bounce |
+| Protocols | UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder |
+| Verify | Sanity check of every analyzer input with a pass/fail checklist |
+
+Every lesson needs at most **8 inputs** and **24 MS/s**, so even the cheapest USB analyzers can follow all of them. Signals are named by Pico pin (GP0, GP10...) rather than analyzer channel, and every expected waveform in the guide is computed from the same configuration the firmware uses, so the guide and the board can't disagree.
+
+## What you need
+
+- A **Raspberry Pi Pico 2 W** and a USB cable. The original Pico and Pico W are not supported.
+- A few jumper wires.
+- **Any logic analyzer** that reads 3.3V logic, with at least 8 inputs and 24 MS/s.
+- A phone or computer with a browser, to read the guide.
+
+Looking for an analyzer? The [gusmanb LogicAnalyzer](https://github.com/gusmanb/logicanalyzer) is an excellent open-source one: 24 channels, built around a Raspberry Pi Pico, with its own desktop app. It is the analyzer this test bench was developed and tested with.
+
+## Quick start
+
+1. Download `logic_test_bench.uf2` from the [latest release](https://github.com/wazp/logicAnalyzerTestBench/releases/latest). Hold the Pico's **BOOTSEL** button while you plug it into USB, then drag the file onto the `RP2350` drive that appears. The board restarts and the signals start right away (details in [Flashing](#flashing)).
+2. Join the Wi-Fi network **`TestBench-XXXX`** (password **`testbench`**). The guide opens as a sign-in page.
+3. Optional: in the guide's Wi-Fi settings, let the test bench join your own network, so you can read the lessons on the computer that runs your analyzer software.
+4. Connect ground, then follow the first lesson.
+
+## How it works
+
+All signals are generated in hardware (PIO, PWM and DMA). Once started, the CPU only runs the USB serial console and the Wi-Fi web server, so the signals have no software jitter. The basic signals cover square waves, PWM and pulses (sample rates, triggers, measuring); GP10 to GP22 carry the protocols you meet on real boards, and GP26 is a push button that bounces like a real one. Every protocol simulates both sides of its bus, so nothing else needs to be connected.
+
+The guide is a small web app built into the firmware. It needs no internet connection, no app install and no account. All you need is the Pico and this firmware.
 
 Built with the official [Raspberry Pi Pico SDK](https://github.com/raspberrypi/pico-sdk) (2.3.1) and CMake.
 
 ## Signals
+
+### Basic signals
 
 | GPIO | Physical pin | Signal (default) | Generated by |
 |---|---|---|---|
@@ -22,9 +59,9 @@ Built with the official [Raspberry Pi Pico SDK](https://github.com/raspberrypi/p
 | GP7 | 10 | 1 kHz PWM, 75% duty | PWM slice 3 B |
 | GP8 | 11 | 1 us high pulse every 1 ms | PWM slice 4 A |
 | GP9 | 12 | Irregular repeating pattern, 1 ms period | PIO1 SM2 + DMA |
-| GND | 3, 8, 13 | Ground | |
+| GND | 3, 8, 13, 18, 23, 28, 33 (AGND), 38 | Ground, all the same | |
 
-All square waves and the GP9 pattern start on the same clock cycle, so their rising edges line up (every 1 Hz edge coincides with a 10 Hz edge, and so on). The PWM outputs start a few cycles apart from the PIO outputs.
+All square waves, the GP9 pattern, the protocol frame and the GP26 button start on the same clock cycle, so their rising edges line up (every 1 Hz edge coincides with a 10 Hz edge, and so on). The PWM outputs start a few cycles apart from the PIO outputs.
 
 ### The GP9 pattern
 
@@ -36,15 +73,50 @@ One 1 ms frame, then it repeats:
 
 The 10 us pulse is a frame marker. Try setting your analyzer to trigger on a "pulse wider than 8 us" and measure the rest.
 
+### Protocol signals
+
+GP10 to GP22 carry protocol traffic. All of it repeats in one **120 ms frame**, played by a single PIO state machine from a timeline computed at boot (see [docs/timing.md](docs/timing.md)). Every protocol simulates **both sides** of its bus (the sensor's ACKs, the flash chip's answer, the device's UART reply), so nothing else needs to be connected.
+
+| GPIO | Physical pin | Signal | What it carries |
+|---|---|---|---|
+| GP10 | 14 | UART TX | 115200 baud 8N1: `Test bench #1\r\n` to `#4`, one every 30 ms |
+| GP11 | 15 | UART RX | The simulated device answers `OK\r\n` 1 ms after each message |
+| GP12 | 16 | I²C SCL | 100 kHz |
+| GP13 | 17 | I²C SDA | Every 10 ms: register read from a TMP102-style sensor at 0x48 (25.0 °C). Once per frame: address 0x49, NAK |
+| GP14 | 19 | SPI SCK | 1 MHz, mode 0 |
+| GP15 | 20 | SPI MOSI | Every 10 ms: JEDEC ID command 0x9F |
+| GP16 | 21 | SPI MISO | The simulated flash answers EF 40 18 (Winbond W25Q128) |
+| GP17 | 22 | SPI CS | Active low, frames each transfer |
+| GP18 | 24 | WS2812 data | 8 LEDs, a moving rainbow, updated every 10 ms |
+| GP19 | 25 | 1-Wire | DS18B20: Convert T at 5 ms, Read Scratchpad at 65 ms (25.0625 °C, valid CRC) |
+| GP20 | 26 | IR remote | NEC as an IR receiver outputs it (active low): address 0x00, command 0x45, then a repeat code |
+| GP21 | 27 | Quadrature A | Rotary encoder: 60 steps forward, then 60 back, 1 ms per step |
+| GP22 | 29 | Quadrature B | |
+
+> **Do not connect the protocol pins to real devices.** I²C and 1-Wire are open-drain buses on real hardware; here every line is driven push-pull. That looks identical to a logic analyzer, but a real sensor, LED strip or bus on these pins could be damaged.
+
+### The GP26 bouncing button
+
+GP26 (physical pin 31) behaves like a push button with a pull-up: high when released, low when pressed. It is pressed every 500 ms and held for 200 ms, and its contacts bounce on both press and release, the way a real button's do:
+
+```
+ press:   40us L | 15us H | 120us L | 60us H | 8us L | 220us H | 90us L | 3us H | 25us L | 2us H | held low
+ release: 20us H | 6us L | 70us H | 4us L | released high for the rest of the 500 ms
+```
+
+That is 6 falling edges for one press, and 2 more on release. It is played by PIO2 SM0 with the same pattern player as GP9. GP27 and GP28 are still free.
+
 ### Changing the signals
 
-Edit [src/signal_config.h](src/signal_config.h). Frequencies, duty cycles, the pulse width and the pattern segments are all plain values there. After rebuilding, the actual generated values (after rounding to whole clock cycles) are shown on the serial console. See [docs/timing.md](docs/timing.md) for what is achievable.
+Edit [src/signal_config.h](src/signal_config.h). Frequencies, duty cycles, the pulse width, the pattern segments and every protocol setting (baud rates, messages, addresses, timing) are all plain values there. This needs [building from source](#building-from-source-optional). After rebuilding, the actual generated values (after rounding to whole clock cycles) are shown on the serial console. See [docs/timing.md](docs/timing.md) for what is achievable.
 
 ## The web guide
 
 1. Power the Pico 2 W. The onboard LED lights up when the guide is available (a few seconds after boot).
 2. Join the Wi-Fi network **`TestBench-XXXX`** (the last four characters are unique per board). Password: **`testbench`**.
 3. The phone or laptop treats the network as a sign-in page (like hotel Wi-Fi) and shows the guide. On Android, tap **Sign in to Wi-Fi network** if the guide does not open by itself. You can also browse to **http://4.3.2.1/**.
+
+On the hotspot, the guide opens on its Wi-Fi page first, since joining your own network is usually the first thing to do. **Start here** in the menu takes you to the lessons.
 
 The hotspot has no internet access; it only serves the guide. The guide works in any modern browser, phones included. The network name and the address are also printed on the serial console.
 
@@ -72,31 +144,24 @@ The test signals keep running through all of this. Joining, scanning and saving 
 
 Security: the saved password is stored in plain text in the Pico's flash, and anyone who can open the guide (on the hotspot or your network) can change or forget the network. The guide never shows the saved password. This is meant for a workbench, not for a network you need to protect from the people near it.
 
-The lessons are written for the [gusmanb LogicAnalyzer](https://github.com/gusmanb/logicanalyzer) and its desktop app, but the concepts apply to any analyzer.
-
-| Track | Lessons |
-|---|---|
-| Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, pattern triggers |
-| Verify | Sanity check of analyzer channels 1 to 10 with a pass/fail checklist |
-
 ## Wiring
 
-These instructions use the gusmanb LogicAnalyzer, whose app numbers channels from 1. So **GPn goes to CH(n+1)**.
+Any logic analyzer that reads 3.3V logic works. Connect ground first, then the signals each lesson asks for to any free inputs:
 
 ```
  Pico 2 W                      Logic analyzer
  ---------                     --------------
- GND (pin 3, 8 or 13) -------- GND            <- always connect ground first
- GP0 (pin 1)  ---------------- CH1
- GP1 (pin 2)  ---------------- CH2
+ GND (any GND pin) ----------- GND            <- always connect ground first
+ GP0 (pin 1)  ---------------- any input
+ GP1 (pin 2)  ---------------- any input
  ...
- GP9 (pin 12) ---------------- CH10
 ```
 
-- Set the analyzer **VREF switch to 3.3V**. Its input threshold follows VREF.
+- If your analyzer has an input voltage or threshold setting, choose 3.3V logic.
 - Power the Pico from USB. The analyzer and Pico must share ground.
 - Physical pin numbers count from pin 1 (top left, next to the USB connector, with the board seen from above) down the left side. GPIO numbers are not the same as physical pin numbers.
-- The analyzer has 24 channels, so all ten signals fit at once. With an 8-channel analyzer, pick the signals you need.
+- Name each input after its Pico pin in your software (`GP0`, `GP10`...), so captures match the guide.
+- With 24 or more inputs you can wire everything at once, for example GPn to input n. With 8, rewire per lesson; no lesson needs more.
 
 ### Electrical safety
 
@@ -106,9 +171,42 @@ These instructions use the gusmanb LogicAnalyzer, whose app numbers channels fro
 - Default drive strength is 4 mA. That is plenty for analyzer inputs, which draw almost nothing.
 - During development the board does not need to be connected to anything. It runs fine with nothing attached to the GPIOs.
 
-## Building on Ubuntu Linux
+## Flashing
 
-Tested on Ubuntu 24.04.
+### Drag and drop (no extra tools)
+
+Works the same on Windows, macOS and Linux.
+
+1. Download `logic_test_bench.uf2` from the [latest release](https://github.com/wazp/logicAnalyzerTestBench/releases/latest) (or build it yourself, see below).
+2. Unplug the Pico 2 W.
+3. Hold the **BOOTSEL** button and plug in USB. Release the button.
+4. A drive called `RP2350` appears. Drag `logic_test_bench.uf2` onto it.
+
+The board reboots and starts generating signals immediately. Updating later is the same: flash the new `.uf2` the same way. Your saved Wi-Fi network is kept.
+
+From a Linux terminal, step 4 is:
+
+```bash
+cp ~/Downloads/logic_test_bench.uf2 /media/$USER/RP2350/
+```
+
+### With picotool (optional)
+
+For people building from source. The picotool built by the SDK has no USB support. To flash over USB without pressing BOOTSEL, build picotool yourself with libusb (see the [picotool README](https://github.com/raspberrypi/picotool)), install its udev rules, then:
+
+```bash
+picotool load -x -f build/logic_test_bench.uf2
+```
+
+### Flash layout
+
+The firmware uses about 0.5 MB of the 4 MB flash. The **second-to-last 4 KB sector** holds the saved Wi-Fi network; flashing a new `.uf2` keeps it, so you don't need to set up Wi-Fi again after an update. (Not the last sector: every RP2350 `.uf2` includes a workaround block for boot ROM erratum RP2350-E10 that lands there and erases it.) The firmware refuses to start if it ever grows into the settings sector.
+
+## Building from source (optional)
+
+Only needed if you want to change the firmware, for example the signals in [src/signal_config.h](src/signal_config.h). The release `.uf2` already contains everything. Every push is also built by CI, which keeps the firmware `.uf2` files as downloadable artifacts of the run.
+
+The instructions are for Ubuntu Linux (tested on 24.04).
 
 ### 1. Install the toolchain (once)
 
@@ -145,33 +243,6 @@ The output is `build/logic_test_bench.uf2` (plus `.elf`, `.bin`, `.hex`). The fi
 The firmware build runs `npm run build` in `web/` and embeds the result, so the guide is always up to date with the firmware. To build without Node.js, build the web guide elsewhere, copy `web/dist/index.html` into place and configure with `-DLTB_BUILD_WEB=OFF`.
 
 The board is set to `pico2_w` in [CMakeLists.txt](CMakeLists.txt). This firmware does not support the original Pico or Pico W (RP2040).
-
-## Flashing
-
-### Drag and drop (no extra tools)
-
-1. Unplug the Pico 2 W.
-2. Hold the **BOOTSEL** button and plug in USB. Release the button.
-3. A drive called `RP2350` appears.
-4. Copy the firmware to it:
-
-```bash
-cp build/logic_test_bench.uf2 /media/$USER/RP2350/
-```
-
-The board reboots and starts generating signals immediately.
-
-### With picotool (optional)
-
-The picotool built by the SDK has no USB support. To flash over USB without pressing BOOTSEL, build picotool yourself with libusb (see the [picotool README](https://github.com/raspberrypi/picotool)), install its udev rules, then:
-
-```bash
-picotool load -x -f build/logic_test_bench.uf2
-```
-
-### Flash layout
-
-The firmware uses about 0.5 MB of the 4 MB flash. The **second-to-last 4 KB sector** holds the saved Wi-Fi network; flashing a new `.uf2` keeps it, so you don't need to set up Wi-Fi again after an update. (Not the last sector: every RP2350 `.uf2` includes a workaround block for boot ROM erratum RP2350-E10 that lands there and erases it.) The firmware refuses to start if it ever grows into the settings sector.
 
 ## USB serial console
 
@@ -212,7 +283,7 @@ npm --prefix web test
 
 ## Working on the web guide
 
-The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 23 KB gzipped).
+The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 50 KB gzipped).
 
 ```bash
 npm --prefix web ci
@@ -222,12 +293,16 @@ npm --prefix web ci
 npm --prefix web run dev
 ```
 
-That serves the guide at http://localhost:5173 with live reload, no board needed. The dev server also fakes the test bench's API (`web/dev/mockDevice.ts`), so the Wi-Fi page works too. Start it with `MOCK_MODE=joined`, `error` or `none` to see the other states. Lessons are data in `web/src/lessons/lessons.ts`. Analyzer app wording and limits live in `web/src/model/analyzer.ts`, so they are easy to correct for newer app versions.
+That serves the guide at http://localhost:5173 with live reload, no board needed. The dev server also fakes the test bench's API (`web/dev/mockDevice.ts`), so the Wi-Fi page works too. Start it with `MOCK_MODE=joined`, `error` or `none` to see the other states. Lessons are data, one file per lesson in `web/src/lessons/` (`concepts/`, `basics/`, `protocols/`, `verify/`), listed in guide order in `web/src/lessons/index.ts`. The limits every lesson must stay within (8 inputs, 24 MS/s) live in `web/src/model/capture.ts`.
 
-When you change `src/signal_config.h`, regenerate the guide's signal data:
+When you change `src/signal_config.h`, regenerate the guide's signal data (the host tests fail until you do):
 
 ```bash
 ./build-tests/export_signals web/src/data/signals.json
+```
+
+```bash
+./build-tests/export_protocols web/src/data/protocols.json
 ```
 
 ### Debugging the Wi-Fi guide
@@ -255,16 +330,23 @@ CMakeLists.txt            firmware build (Pico SDK)
 src/
   main.cpp                set up all outputs, start them together, run Wi-Fi, console, BOOTSEL
   board_pins.h            GPIO allocation and reserved pin checks
-  signal_config.h         default frequencies, duty cycles, pattern
+  signal_config.h         default frequencies, duty cycles, pattern, protocol settings
   status.{h,cpp}          table of what each pin is doing, for the console
   core/timing.{h,cpp}     pure timing math, unit tested on the host
   core/http_request.*     HTTP request parsing, form decoding, JSON escaping (host tested)
   core/settings.*         saved Wi-Fi settings: validation and flash layout (host tested)
   core/scan_list.*        Wi-Fi scan results, one row per network (host tested)
+  core/wave.h             one pin's edges over a frame, written by the protocol encoders
+  core/protocols/*        UART, I²C, SPI, WS2812, 1-Wire, NEC IR, quadrature encoders (host tested)
+  core/protocol_frame.*   places every protocol in the 120 ms frame (host tested)
+  core/timeline.*         merges the pins into PIO words (host tested)
   hw/square_wave.pio      PIO program: square wave with any duty cycle
   hw/square_output.*      sets up one PIO state machine per square wave
   hw/pattern.pio          PIO program: plays (level, duration) segments
-  hw/pattern_output.*     pattern encoding + chained DMA loop
+  hw/pattern_output.*     pattern encoding, played by DMA (GP9 and GP26)
+  hw/timeline.pio         PIO program: plays 13-pin (levels, duration) words
+  hw/timeline_output.*    builds the protocol frame and plays it on GP10-GP22
+  hw/dma_loop.*           looping DMA into a PIO FIFO (pattern and timeline)
   hw/pwm_output.*         PWM slice setup (duty pair, short pulse)
   hw/settings_store.*     saved Wi-Fi settings in a reserved flash sector
   hw/bootsel_button.*     reads BOOTSEL at runtime (hold 3 s, release: forget Wi-Fi)
@@ -274,6 +356,7 @@ src/
   net/lwipopts.h          lwIP config; net_debug_hooks.h for -DLTB_NET_DEBUG=ON
 tests/                    host unit tests (standalone CMake project)
 tools/export_signals.cpp  writes web/src/data/signals.json from the C++ config
+tools/export_protocols.cpp  writes web/src/data/protocols.json (protocol lessons)
 tools/prepare_web_content.py  gzips the guide into a C array for the web server
 web/                      the web guide (Preact + TypeScript + Vite)
 web/dev/mockDevice.ts     fake device API for the dev server, not part of the build
@@ -284,12 +367,8 @@ AGENTS.md                 development conventions
 
 ## Roadmap
 
-Planned modes, each as its own module under `src/protocols/`:
-
-- UART transmit (tentative pins GP12/GP13)
-- I2C controller traffic (tentative pins GP14/GP15)
-- SPI controller traffic (tentative pins GP16 to GP19)
-- Simulated Commodore 64 bus traffic (pins to be decided)
-- More signals to learn from: WS2812 LED data, IR remote (NEC), servo PWM, quadrature encoder, 1-Wire, VGA sync timing
-- Named signal presets (for example a 24-channel test for the Verify track), selectable from the guide
+- VGA 640x480 output (sync and 3-bit color bars), also viewable on a real monitor, with presets to switch the shared pins between protocols and VGA from the guide
+- Protocol settings (baud rate, bus speed, message) adjustable from the guide
+- More signals to learn from: CAN, servo PWM, I2S audio, simulated Commodore 64 bus traffic
+- Named signal presets for the Verify track (for example a 24-input channel and skew test)
 - A small USB drive next to the serial port, with `WIFI.TXT` to set the network before first boot and `STATUS.TXT` showing the IP address
