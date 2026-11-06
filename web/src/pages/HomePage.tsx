@@ -73,7 +73,7 @@ export function HomePage() {
         <h2>Before you connect anything</h2>
         <ul>
           <li>
-            Always connect <strong>ground first</strong>: analyzer GND to a Pico GND pin (3, 8 or 13).
+            Always connect <strong>ground first</strong>: analyzer GND to any Pico GND pin. They are all the same ground.
           </li>
           <li>
             If your analyzer has an input voltage or threshold setting, choose <strong>3.3V</strong> logic.

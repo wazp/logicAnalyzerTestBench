@@ -22,7 +22,7 @@ function WiringTable({ gpios }: { gpios: number[] }) {
         </thead>
         <tbody>
           <tr>
-            <td>GND, pin 3, 8 or 13</td>
+            <td>Any GND pin</td>
             <td class="muted">common ground</td>
             <td>GND, connect first</td>
           </tr>

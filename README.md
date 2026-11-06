@@ -59,7 +59,7 @@ Built with the official [Raspberry Pi Pico SDK](https://github.com/raspberrypi/p
 | GP7 | 10 | 1 kHz PWM, 75% duty | PWM slice 3 B |
 | GP8 | 11 | 1 us high pulse every 1 ms | PWM slice 4 A |
 | GP9 | 12 | Irregular repeating pattern, 1 ms period | PIO1 SM2 + DMA |
-| GND | 3, 8, 13 | Ground | |
+| GND | 3, 8, 13, 18, 23, 28, 33 (AGND), 38 | Ground, all the same | |
 
 All square waves and the GP9 pattern start on the same clock cycle, so their rising edges line up (every 1 Hz edge coincides with a 10 Hz edge, and so on). The PWM outputs start a few cycles apart from the PIO outputs.
 
@@ -140,7 +140,7 @@ Any logic analyzer that reads 3.3V logic works. Connect ground first, then the s
 ```
  Pico 2 W                      Logic analyzer
  ---------                     --------------
- GND (pin 3, 8 or 13) -------- GND            <- always connect ground first
+ GND (any GND pin) ----------- GND            <- always connect ground first
  GP0 (pin 1)  ---------------- any input
  GP1 (pin 2)  ---------------- any input
  ...

@@ -1,5 +1,5 @@
 import { shortLabel, signalColor } from '../model/board';
-import { headerPins, recommendedGroundPins, type HeaderPin } from '../model/pico';
+import { headerPins, groundPins, type HeaderPin } from '../model/pico';
 
 // Top view of the Pico 2 W: pins 1-20 down the left edge, 21-40 up the right.
 const ROW = 17;
@@ -19,7 +19,7 @@ export function PinDiagram({ gpios }: { gpios: number[] }) {
   const used = new Set(gpios);
   const pinClass = (p: HeaderPin) => {
     if (p.gpio !== undefined && used.has(p.gpio)) return 'pin used';
-    if (recommendedGroundPins.includes(p.pin)) return 'pin gnd';
+    if (groundPins.includes(p.pin)) return 'pin gnd';
     return 'pin';
   };
 
@@ -36,7 +36,7 @@ export function PinDiagram({ gpios }: { gpios: number[] }) {
       {headerPins.map((p) => {
         const { x, y, left } = position(p.pin);
         const isUsed = p.gpio !== undefined && used.has(p.gpio);
-        const isGnd = recommendedGroundPins.includes(p.pin);
+        const isGnd = groundPins.includes(p.pin);
         const color = isUsed ? signalColor(p.gpio!) : undefined;
         const labelX = left ? x - 12 : x + 12;
         const anchor = left ? 'end' : 'start';

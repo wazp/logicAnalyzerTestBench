@@ -30,7 +30,7 @@ export const markerTriggerShare = () => {
 export const pinList = (gpios: number[]) => gpios.map((g) => `**GP${g}**`).join(', ');
 
 export const wireSteps = (gpios: number[]) => [
-  'Connect the analyzer **ground** to a Pico **GND** pin first (pin 3, 8 or 13).',
+  'Connect the analyzer **ground** to a Pico **GND** pin first. They are all the same ground; pick the one nearest your signals.',
   'If your analyzer has an input voltage or threshold setting, choose **3.3V** logic.',
   `Connect ${pinList(gpios)} to free analyzer inputs. Any inputs will do; note which one got which pin.`,
 ];
