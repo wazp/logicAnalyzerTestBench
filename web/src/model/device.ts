@@ -2,6 +2,8 @@
 // Only available when the guide is served by the device itself; opened from a
 // file or another host, getStatus() returns null and the Wi-Fi page explains.
 
+import { defaultPreset, isPresetId, type PresetId } from './presets';
+
 export type WifiMode = 'setup' | 'joining' | 'joined' | 'off';
 export type JoinError = '' | 'wrong_password' | 'not_found' | 'timeout' | 'failed';
 export type SaveError = 'ssid_required' | 'ssid_too_long' | 'password_too_short' | 'password_too_long';
@@ -14,7 +16,11 @@ export interface DeviceStatus {
   ap_ssid: string;
   last_error: JoinError;
   version: string;
+  /** Firmware 0.4.0 and older have no presets and report none. */
+  preset?: PresetId;
 }
+
+export type PresetResult = { ok: true; preset: PresetId; restarting: boolean } | { ok: false; error: string };
 
 export interface Network {
   ssid: string;
@@ -68,6 +74,36 @@ export async function saveWifi(ssid: string, password: string, fetcher: typeof f
     body: new URLSearchParams({ ssid, password }).toString(),
   });
   return (await r.json()) as SaveResult;
+}
+
+/** The preset a status reports; old firmware without presets plays the protocols. */
+export function activePreset(status: Pick<DeviceStatus, 'preset'>): PresetId {
+  return isPresetId(status.preset) ? status.preset : defaultPreset;
+}
+
+/** Saves the preset; the board restarts if it changed (about 2 s, Wi-Fi rejoins after). */
+export async function setPreset(preset: PresetId, fetcher: typeof fetch = fetch): Promise<PresetResult> {
+  const r = await fetcher('/api/preset', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ preset }).toString(),
+  });
+  return (await r.json()) as PresetResult;
+}
+
+/** After a switch: polls until the board answers with `preset` again, or gives up. */
+export async function waitForPreset(
+  preset: PresetId,
+  fetcher: typeof fetch = fetch,
+  pollMs = 1500,
+  maxPolls = 30,
+): Promise<boolean> {
+  for (let i = 0; i < maxPolls; i++) {
+    await new Promise((resolve) => setTimeout(resolve, pollMs));
+    const status = await getStatus(fetcher);
+    if (status && activePreset(status) === preset) return true;
+  }
+  return false;
 }
 
 export async function forgetWifi(fetcher: typeof fetch = fetch): Promise<void> {

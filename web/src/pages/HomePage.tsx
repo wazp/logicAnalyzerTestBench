@@ -8,6 +8,7 @@ import { formatHz, formatPercent, formatRate, formatTime } from '../model/format
 import { physicalPinForGpio } from '../model/pico';
 import { frameMs, protocolData as d, protocolPins, type ProtocolId } from '../model/protocols';
 import { bounceTiming, clkSysHz, periodNs, signals } from '../model/signals';
+import { frameHz, lineHz, videoData as v, videoPins, type VideoPart } from '../model/video';
 
 const protocolDetail: Record<ProtocolId, string> = {
   uart: `${d.uart.baud} baud, 8N1`,
@@ -17,6 +18,12 @@ const protocolDetail: Record<ProtocolId, string> = {
   onewire: 'DS18B20, standard speed',
   ir: 'NEC remote, as an IR receiver outputs it',
   quadrature: `rotary encoder, ${d.quadrature.stepUs} µs per step`,
+};
+
+const videoDetail: Record<VideoPart, string> = {
+  vga: `${v.vga.h.visible}x${v.vga.v.visible}, ${formatHz(lineHz)} lines, ${formatHz(frameHz)} frames`,
+  nes: 'controller read once per video frame',
+  ps2: `keyboard at ${formatHz(v.ps2.clockHz)}, presses and releases a key`,
 };
 
 function PinCell({ gpio }: { gpio: number }) {
@@ -46,8 +53,9 @@ export function HomePage() {
         <p class="lede">
           This Pico 2 W is outputting {allSignalGpios.length} known test signals right now: square waves and pulses to
           learn the basics, a push button that bounces, and the protocols you will meet on real boards (UART, I²C, SPI,
-          WS2812, 1-Wire, IR, a rotary encoder). Follow the lessons to learn how to set up, trigger, decode and read captures, or run the
-          checks to verify an analyzer.
+          WS2812, 1-Wire, IR, a rotary encoder). A second preset swaps the protocols for a VGA picture, an NES
+          controller and a PS/2 keyboard. Follow the lessons to learn how to set up, trigger, decode and read
+          captures, or run the checks to verify an analyzer.
         </p>
       </header>
 
@@ -129,7 +137,7 @@ export function HomePage() {
                 </tbody>
               </table>
             </div>
-            <h3>Protocols</h3>
+            <h3>Protocols (the default preset)</h3>
             <div class="table-scroll">
               <table class="signals-table">
                 <thead>
@@ -150,12 +158,38 @@ export function HomePage() {
                 </tbody>
               </table>
             </div>
+            <h3>Video and input (the other preset)</h3>
+            <p class="muted small">
+              The same pins, switched under <a href="#/preset">Settings, Signal preset</a>. GP
+              {v.unusedGpios[0]}-GP{v.unusedGpios[v.unusedGpios.length - 1]} are held low in this preset.
+            </p>
+            <div class="table-scroll">
+              <table class="signals-table">
+                <thead>
+                  <tr>
+                    <th>Pico</th>
+                    <th>Signal</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {videoPins.map((p) => (
+                    <tr key={p.gpio}>
+                      <PinCell gpio={p.gpio} />
+                      <td>{p.name}</td>
+                      <td class="muted">{videoDetail[p.part]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
         <p class="muted small">
           All timing comes from the Pico's {formatHz(clkSysHz)} clock: accuracy is that of its crystal (tens of ppm)
           with no jitter, so the Pico is a good reference for checking an analyzer. The protocol traffic repeats every{' '}
-          {frameMs} ms, and every protocol simulates both sides, so no other device is needed.
+          {frameMs} ms, and every protocol simulates both sides, so no other device is needed. GP10-GP22 play one
+          preset at a time; switching restarts the board so everything starts in step again.
         </p>
       </section>
 

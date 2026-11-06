@@ -1215,3 +1215,43 @@ body:has(.zoom-dialog[open]) {
     display: block;
   }
 }
+
+/* ---------- Signal presets ---------- */
+
+.preset-banner {
+  margin: 0 0 1.5rem;
+  padding: 12px 16px;
+  border: 1px solid var(--warn-border);
+  background: var(--warn-bg);
+  border-radius: var(--radius);
+}
+
+.preset-banner p {
+  margin: 0 0 10px;
+}
+
+.preset-card {
+  margin-top: 1.5rem;
+}
+
+.preset-card h2 {
+  margin-top: 0;
+}
+
+.preset-card.active {
+  border-color: var(--accent);
+}
+
+.preset-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin-left: 8px;
+  vertical-align: 2px;
+}
+
+.preset-progress {
+  margin: 0;
+}

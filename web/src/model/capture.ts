@@ -7,6 +7,7 @@
 
 import { shortLabel } from './board';
 import { formatRate, formatTime } from './format';
+import { defaultPreset, type PresetId } from './presets';
 
 export const minimumAnalyzer = {
   inputs: 8,
@@ -70,10 +71,10 @@ export function validateSettings(s: CaptureSettings): string[] {
   return issues;
 }
 
-/** The trigger in plain words. */
-export function describeTrigger(t: Trigger): string {
+/** The trigger in plain words. GP10-GP22 are named as in `preset`. */
+export function describeTrigger(t: Trigger, preset: PresetId = defaultPreset): string {
   if (t.type === 'edge') {
-    return `${t.edge === 'rising' ? 'Rising' : 'Falling'} edge on GP${t.gpio} (${shortLabel(t.gpio)})`;
+    return `${t.edge === 'rising' ? 'Rising' : 'Falling'} edge on GP${t.gpio} (${shortLabel(t.gpio, preset)})`;
   }
   if (t.type === 'pulse') {
     const limits = [
