@@ -46,6 +46,14 @@ export const howItWorks: Lesson = {
       ],
     },
     {
+      title: 'Length in time or in samples',
+      body: [
+        'Analyzer software asks for the capture length in one of two ways: as a **time** (2 s) or as a **number of samples** (20,000). They are the same thing: samples = time × sample rate. At 10 kS/s, 2 seconds is 20,000 samples.',
+        'If yours counts samples, the sample rate and the length are tied together. Raise the rate and the same count covers less time. 392,000 samples at 100 MS/s is only 3.9 ms. A 1 Hz signal shows the edge you triggered on and then a flat line, because it does not change again for another 500 ms.',
+        'The part kept from **before the trigger** works the same way. It can be a time, a sample count, or a percentage of the whole capture. Every lesson in this guide gives the time and the sample count, plus the percentage when there is a before part.',
+      ],
+    },
+    {
       title: 'What the sample rate buys you',
       body: [
         'An edge can only be seen at a sample, so every edge you measure can be off by up to one sample period: 1 µs at 1 MS/s, about 42 ns at 24 MS/s. A pulse shorter than one sample period can be missed entirely.',

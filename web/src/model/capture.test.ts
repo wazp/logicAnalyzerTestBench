@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { captureWindow, describeTrigger, samplesNeeded, validateSettings, type CaptureSettings } from './capture';
+import { captureWindow, describeTrigger, samplesFor, samplesNeeded, validateSettings, type CaptureSettings } from './capture';
 
 const base: CaptureSettings = {
   gpios: [0, 1, 2, 3],
@@ -13,6 +13,9 @@ describe('capture model', () => {
   it('computes the window and the samples per input', () => {
     expect(captureWindow(base)).toEqual({ preNs: 200e6, postNs: 2e9 });
     expect(samplesNeeded(base)).toBe(22_000);
+    // The first-capture lesson in an app that counts samples: 2,000 before the trigger, 20,000 after.
+    expect(samplesFor(base, base.preTriggerNs)).toBe(2_000);
+    expect(samplesFor(base, base.durationNs)).toBe(20_000);
   });
 
   it('accepts settings an 8-input 24 MS/s analyzer can do', () => {

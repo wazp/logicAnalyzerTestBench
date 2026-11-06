@@ -38,6 +38,11 @@ export function captureWindow(s: CaptureSettings): { preNs: number; postNs: numb
   return { preNs: s.preTriggerNs, postNs: s.durationNs };
 }
 
+/** Samples covering `ns` at the lesson's sample rate, for apps that set the length as a sample count. */
+export function samplesFor(s: CaptureSettings, ns: number): number {
+  return Math.ceil((ns * s.sampleRateHz) / 1e9);
+}
+
 /** Samples per input for the whole capture. Buffer-based analyzers need this much memory. */
 export function samplesNeeded(s: CaptureSettings): number {
   return Math.ceil(((s.preTriggerNs + s.durationNs) * s.sampleRateHz) / 1e9);
