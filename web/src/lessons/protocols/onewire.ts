@@ -15,7 +15,7 @@ export const onewire: Lesson = {
   title: '1-Wire',
   summary: 'Reset, presence, time slots: reading a DS18B20 temperature sensor.',
   gpios: [dq],
-  intro: `A simulated DS18B20 temperature sensor shares one wire with the controller. At ${d.onewire.convertAtMs} ms the controller starts a temperature conversion, and at ${d.onewire.readAtMs} ms it reads the result. Every bit is a time slot that starts with the line pulled low; how long it stays low is the bit.`,
+  intro: `A simulated DS18B20 temperature sensor shares one wire with the controller. At ${d.onewire.convertAtMs} ms the controller starts a temperature conversion, and at ${d.onewire.readAtMs} ms it reads the result. Every bit is a time slot that starts with the line pulled low; how long it stays low is the bit. (A real DS18B20 needs up to 750 ms for a 12-bit conversion, so a real controller waits that long or polls until it is done. The simulated one is ready at once.)`,
   parts: [
     {
       title: 'Reset and presence',
@@ -38,7 +38,7 @@ export const onewire: Lesson = {
         exampleView('onewire', 'reset', { gpio: dq, edge: 'falling' }, {
           title: 'Reset',
           sampleRateHz: 1_000_000,
-          caption: 'Controller low for 480 µs, then the sensor pulls low for 120 µs: "I am here".',
+          caption: `Controller low for ${d.onewire.resetLowUs} µs, then the sensor pulls low for ${d.onewire.presenceLowUs} µs: "I am here".`,
         }),
         exampleView('onewire', 'convert', { gpio: dq, edge: 'falling' }, {
           title: 'Convert',

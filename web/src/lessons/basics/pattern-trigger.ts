@@ -3,7 +3,7 @@
 
 import { formatTime } from '../../model/format';
 import { segmentTimeline } from '../../model/signals';
-import { period, sig, wireSteps } from '../helpers';
+import { markerTriggerShare, patternPulses, period, sig, wireSteps } from '../helpers';
 import type { Lesson } from '../types';
 
 const patternFrame = sig(9).segments;
@@ -26,7 +26,7 @@ export const patternTrigger: Lesson = {
       },
       steps: [
         ...wireSteps([3, 8, 9]),
-        'Capture a few times with an edge trigger on GP9. Notice the trigger lands on a different pulse each time.',
+        `Capture a few times with an edge trigger on GP9. About ${Math.round(markerTriggerShare() * 10)} times in 10 the capture starts at the frame marker, because it is the first pulse after the long quiet stretch. Arm the trigger during the busy start of the frame, though, and it fires on whichever pulse comes next. Nothing tells you which one you got.`,
       ],
       views: [
         {
@@ -34,7 +34,7 @@ export const patternTrigger: Lesson = {
           startNs: -20e3,
           endNs: 1.1e6,
           sampleRateHz: 10_000_000,
-          caption: 'This is the frame as seen from its start. Your edge-triggered captures will be shifted to whichever pulse came first.',
+          caption: 'The frame as seen from its start. Most edge-triggered captures look like this; now and then one is shifted to a later pulse.',
         },
       ],
     },
@@ -86,7 +86,7 @@ export const patternTrigger: Lesson = {
     },
     {
       q: 'Why would a pattern of only "GP9 high" not work as well?',
-      a: 'GP9 is high during seven different pulses per frame, so that pattern is no better than an edge trigger.',
+      a: `GP9 is high during ${patternPulses().length} different pulses per frame, so that pattern is no better than an edge trigger.`,
     },
   ],
 };

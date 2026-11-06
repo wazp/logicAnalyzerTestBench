@@ -1,7 +1,13 @@
 // Concept: trigger types and modes, and how to choose a good trigger.
 
-import { wireSteps } from '../helpers';
+import { formatTime } from '../../model/format';
+import { andList, highNs, markerTriggerShare, patternPulses, period, wireSteps } from '../helpers';
 import type { Lesson } from '../types';
+
+// The pulse width window: wider than every other GP9 pulse below the marker, narrower than every one above it.
+const [marker, ...otherPulses] = patternPulses();
+const longerThanNs = 8e3;
+const shorterThanNs = 15e3;
 
 export const triggers: Lesson = {
   id: 'triggers',
@@ -21,7 +27,7 @@ export const triggers: Lesson = {
     {
       title: 'Trigger types',
       body: [
-        'Every analyzer has edge triggers. Which other types you get depends on the analyzer and its software. Some streaming analyzers only search the data after the capture; it works the same way, it just cannot save memory.',
+        'Every analyzer has edge triggers. Which other types you get depends on the analyzer and its software. On many streaming analyzers the computer, not the analyzer, checks the trigger condition as the samples arrive and keeps only the samples around it. From your side it works the same.',
       ],
       table: {
         title: 'Trigger types',
@@ -64,19 +70,19 @@ export const triggers: Lesson = {
     {
       title: 'Catch the frame marker by its width',
       intro:
-        'GP9 repeats a 1 ms pattern that starts with a 10 µs pulse. Its other pulses are 1, 3 and 20 µs wide, so "high for longer than 8 µs but shorter than 15 µs" matches only the frame marker.',
+        `GP9 repeats a ${formatTime(period(9))} pattern that starts with a ${formatTime(marker)} pulse. Its other pulses are ${andList([...new Set(otherPulses)].sort((a, b) => a - b).map(formatTime))} wide, so "high for longer than ${formatTime(longerThanNs)} but shorter than ${formatTime(shorterThanNs)}" matches only the frame marker.`,
       settings: {
         gpios: [8, 9],
         sampleRateHz: 10_000_000,
         durationNs: 120e3,
         preTriggerNs: 20e3,
-        trigger: { type: 'pulse', gpio: 9, level: 1, longerThanNs: 8e3, shorterThanNs: 15e3 },
+        trigger: { type: 'pulse', gpio: 9, level: 1, longerThanNs, shorterThanNs },
       },
       steps: [
         ...wireSteps([8, 9]),
-        'Set a pulse width trigger on GP9: high, longer than 8 µs and shorter than 15 µs. Capture a few times: every capture lands on the frame marker.',
-        'Most analyzers fire a pulse width trigger when the pulse **ends**, because only then is its width known. Your trigger mark may sit at the end of the 10 µs pulse rather than its start.',
-        'No pulse width trigger? Trigger on the rising edge of GP8 instead: its 1 µs pulse starts at the same moment as the frame marker.',
+        `Set a pulse width trigger on GP9: high, longer than ${formatTime(longerThanNs)} and shorter than ${formatTime(shorterThanNs)}. Capture a few times: every capture lands on the frame marker.`,
+        `Many analyzers fire a pulse width trigger when the pulse **ends**: with a "shorter than" limit, only then is the width known. Your trigger mark may sit at the end of the ${formatTime(marker)} pulse rather than its start.`,
+        `No pulse width trigger? Trigger on the rising edge of GP8 instead: its ${formatTime(highNs(8))} pulse starts with the frame marker.`,
       ],
       views: [
         {
@@ -91,8 +97,8 @@ export const triggers: Lesson = {
   ],
   questions: [
     {
-      q: 'Why would an edge trigger on GP9 not work for this?',
-      a: 'GP9 rises seven times per frame. An edge trigger fires on whichever rising edge comes first after you arm it, so each capture starts at a different pulse.',
+      q: 'Why not just use an edge trigger on GP9?',
+      a: `It usually works, which is the trap. An edge trigger fires on the first rising edge after you arm it. About ${Math.round(markerTriggerShare() * 10)} times in 10 that is the frame marker, because it follows the long quiet stretch, but arm it during the busy start of the frame and it fires on whichever of the ${patternPulses().length} pulses comes next. The pulse width trigger lands on the marker every time.`,
     },
     {
       q: 'When would you choose single mode over repeat mode?',

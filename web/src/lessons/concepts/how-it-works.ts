@@ -1,6 +1,8 @@
 // Concept: what a logic analyzer does, and what it cannot see.
 
-import { wireSteps } from '../helpers';
+import { formatTime } from '../../model/format';
+import { protocolData } from '../../model/protocols';
+import { highNs, wireSteps } from '../helpers';
 import type { Lesson } from '../types';
 
 export const howItWorks: Lesson = {
@@ -74,8 +76,9 @@ export const howItWorks: Lesson = {
       steps: [
         ...wireSteps([5]),
         'Capture GP5 (100 kHz) at 1 MS/s and zoom in until you can see individual samples. Many apps show them as dots or a grid when zoomed in far enough.',
-        'Measure the high time of a few periods. It should be 5 µs, but you will read 4 or 6 µs at times: each edge can land anywhere within a sample.',
-        'Repeat at a higher sample rate and watch the error shrink.',
+        `Measure the high time of a few periods. You read exactly ${formatTime(highNs(5))} every time: that is a whole number of samples, so each edge lands the same number of samples after the one before.`,
+        `Most real signals are not that tidy. A UART bit on GP10 is ${formatTime(protocolData.uart.bitNs)} wide: at 1 MS/s it reads as ${formatTime(Math.floor(protocolData.uart.bitNs / 1e3) * 1e3)} or ${formatTime(Math.ceil(protocolData.uart.bitNs / 1e3) * 1e3)}, depending on where the samples fall. Every measurement can be off by up to one sample period.`,
+        'At a higher sample rate the samples sit closer together, so that possible error shrinks.',
       ],
       views: [
         {
@@ -96,7 +99,7 @@ export const howItWorks: Lesson = {
     },
     {
       q: 'You need to capture 2 seconds at 10 MS/s on 4 inputs. How many samples is that?',
-      a: '20 million samples per input, 80 million in total. A buffered analyzer without compression needs that much memory; a streaming one needs to move 40 MS/s of input data over USB.',
+      a: '20 million samples per input, 80 million in total. A buffered analyzer without compression needs that much memory; a streaming one has to move 4 × 10 million samples per second over USB, about 5 MB/s at one bit per sample.',
     },
   ],
 };

@@ -28,7 +28,7 @@ export const quadrature: Lesson = {
       },
       steps: [
         ...protocolWireSteps([qa, qb]),
-        `Capture 130 ms, triggered on the rising edge of GP${qa}. The direction changes once every ${frameMs} ms, so it is always inside.`,
+        `Capture 130 ms, triggered on the rising edge of GP${qa}. The encoder changes direction every ${(d.quadrature.steps * d.quadrature.stepUs) / 1000} ms (twice in every ${frameMs} ms of traffic), so the capture always contains a turnaround.`,
         `Find a stretch where GP${qa} rises while GP${qb} is low. That is one direction ("A leads B").`,
         `Find where it turns around: from then on GP${qb} changes first.`,
         'Count the edges on both lines between two turnarounds. Each edge is one step.',

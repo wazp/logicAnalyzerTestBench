@@ -82,7 +82,8 @@ export const voltageLevels: Lesson = {
       steps: [
         ...wireSteps([3]),
         'Capture with your normal 3.3V setting. You should see a clean 1 kHz square wave.',
-        "If your analyzer's threshold is adjustable: raise it above 3.3 V (or pick 5V CMOS logic if it offers that). GP3 never reaches it and reads low all the time. That is exactly what happens when a 3.3V chip drives a 5V CMOS input.",
+        "If your analyzer's threshold is adjustable: raise it above 3.3 V. GP3 never reaches it and reads low all the time. (A 5V logic setting is not enough: it switches somewhere between about 1.4 V and 2.5 V, which 3.3 V still clears.)",
+        'A 5V CMOS input driven by a 3.3V chip is in a similar spot: its guaranteed high level starts at 3.5 V, so 3.3 V may or may not read as high.',
         'Set it back to 3.3V logic. If your analyzer has no threshold setting, read the manual to find out where it switches and how much voltage the inputs can take.',
       ],
       views: [

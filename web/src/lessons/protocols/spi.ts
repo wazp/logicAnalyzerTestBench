@@ -16,7 +16,7 @@ export const spi: Lesson = {
   title: 'SPI',
   summary: 'Chip select, clock, and data both ways at once: reading a flash chip\'s ID.',
   gpios: [sck, mosi, miso, cs],
-  intro: `Every ${d.spi.startsMs[1] - d.spi.startsMs[0]} ms the controller asks a simulated flash chip for its ID with command ${hexByte(d.spi.command)}. SPI sends and receives at the same time: on every clock edge one bit goes out on MOSI and one comes back on MISO. CS (chip select, active low) frames the transfer, which makes it the perfect trigger.`,
+  intro: `Every ${d.spi.startsMs[1] - d.spi.startsMs[0]} ms the controller asks a simulated flash chip for its ID with command ${hexByte(d.spi.command)}. SPI sends and receives at the same time: every clock cycle moves one bit out on MOSI and one bit back on MISO. CS (chip select, active low) frames the transfer, which makes it the perfect trigger.`,
   parts: [
     {
       title: 'Read the JEDEC ID',
@@ -39,7 +39,7 @@ export const spi: Lesson = {
         exampleView('spi', 'jedec_id', { gpio: cs, edge: 'falling' }, {
           title: 'One transfer',
           sampleRateHz: 8_000_000,
-          caption: `MOSI: ${hexByte(d.spi.command)} then zeros. MISO: released (0xFF) during the command, then ${bytesHex(d.spi.reply)}.`,
+          caption: `MOSI: ${hexByte(d.spi.command)} then zeros. MISO: 0xFF during the command, then ${bytesHex(d.spi.reply)}. A real flash lets go of MISO until it answers, so on a real board those first bits read 0xFF only if something pulls the line up; this board holds it high.`,
         }),
       ],
     },

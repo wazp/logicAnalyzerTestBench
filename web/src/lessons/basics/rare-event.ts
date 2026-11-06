@@ -1,9 +1,11 @@
 // Lesson: catching a short pulse. Every number shown is computed from signals.json (the firmware's
 // own config), so the lesson stays correct when the defaults change.
 
-import { formatTime } from '../../model/format';
-import { highNs, wireSteps } from '../helpers';
+import { formatPercent, formatTime } from '../../model/format';
+import { highNs, patternPulses, sig, wireSteps } from '../helpers';
 import type { Lesson } from '../types';
+
+const pulseSamples = Math.round(highNs(8) * 24e-3);
 
 export const rareEvent: Lesson = {
   id: 'rare-event',
@@ -12,7 +14,7 @@ export const rareEvent: Lesson = {
   summary: 'Trigger on a 1 µs event at a fast rate and use pre-trigger samples to see what led up to it.',
   gpios: [8, 9],
   intro:
-    'Short events are where a logic analyzer shines. GP8 is high for only 0.1% of the time. With an edge trigger you can capture exactly that moment at a fast sample rate, plus whatever happened just before it.',
+    `Short events are where a logic analyzer shines. GP8 is high for only ${formatPercent(sig(8).dutyPercent)} of the time. With an edge trigger you can capture exactly that moment at a fast sample rate, plus whatever happened just before it.`,
   parts: [
     {
       title: 'Trigger on the pulse',
@@ -35,7 +37,7 @@ export const rareEvent: Lesson = {
           startNs: -10e3,
           endNs: 20e3,
           sampleRateHz: 24_000_000,
-          caption: 'GP8 is high for 1 µs, 24 samples at 24 MS/s. GP9 starts its 10 µs frame marker at the same moment.',
+          caption: `GP8 is high for ${formatTime(highNs(8))}, ${pulseSamples} samples at 24 MS/s. GP9 starts its ${formatTime(patternPulses()[0])} frame marker at the same moment.`,
         },
       ],
     },
@@ -43,7 +45,7 @@ export const rareEvent: Lesson = {
   questions: [
     {
       q: 'How wide is the pulse, in time and in samples?',
-      a: `${formatTime(highNs(8))}: 24 samples at 24 MS/s (about 42 ns each). Your reading can be off by one sample, so anything from 23 to 25 samples is right.`,
+      a: `${formatTime(highNs(8))}: ${pulseSamples} samples at 24 MS/s (about 42 ns each). Your reading can be off by one sample, so anything from ${pulseSamples - 1} to ${pulseSamples + 1} samples is right.`,
     },
     {
       q: 'What use are the pre-trigger samples here?',
