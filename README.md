@@ -6,7 +6,27 @@ A logic analyzer is easy to plug in and hard to trust at first: is that glitch r
 
 It works with **any logic analyzer and any software**: the analyzer's own app, or the free [PulseView](https://sigrok.org/wiki/PulseView). The lessons describe what to set, not where to click.
 
-> **No building, no tools, no install.** Everything is in one firmware file: the 24 signals, the Wi-Fi hotspot and the complete guide. Download `logic_test_bench.uf2` from the [latest release](https://github.com/wazp/logicAnalyzerTestBench/releases/latest), drag it onto the Pico 2 W, and you are done. You never need the build instructions further down unless you want to change the firmware.
+> **No building, no tools, no install.** Everything is in one firmware file: the 24 signals, the Wi-Fi hotspot and the complete guide. [Download `logic_test_bench.uf2`](https://github.com/wazp/logicAnalyzerTestBench/releases/latest/download/logic_test_bench.uf2) (always the newest version), drag it onto the Pico 2 W, and you are done. You never need the build instructions further down unless you want to change the firmware.
+
+## What the guide looks like
+
+![A quick tour: the pinout on the home page, then the UART lesson with its expected capture, enlarged](docs/images/tour.gif)
+
+Each lesson tells you which pins to connect, what to set on the analyzer, and shows the capture you should get, computed from the firmware's own configuration:
+
+![The UART lesson: steps, capture settings with sample counts, and the expected waveform](docs/images/lesson.png)
+
+Drawings can show what a slower capture would record. Here the bouncing button at 2 MS/s, 100 kS/s and 10 kS/s: the short spikes vanish as the sample rate drops.
+
+![The switch bounce drawing at three sample rates](docs/images/sample-rate.gif)
+
+The home page shows every signal on the pinout, with its frequency and duty cycle:
+
+![The home page: every signal on the Pico pinout, with frequencies and duty cycles](docs/images/home.png)
+
+On the hotspot the guide runs on your phone, so it can sit next to the analyzer:
+
+<img src="docs/images/phone.png" alt="A lesson's wiring diagram on a phone" width="300">
 
 ## What you learn
 
@@ -30,7 +50,7 @@ Looking for an analyzer? The [gusmanb LogicAnalyzer](https://github.com/gusmanb/
 
 ## Quick start
 
-1. Download `logic_test_bench.uf2` from the [latest release](https://github.com/wazp/logicAnalyzerTestBench/releases/latest). Hold the Pico's **BOOTSEL** button while you plug it into USB, then drag the file onto the `RP2350` drive that appears. The board restarts and the signals start right away (details in [Flashing](#flashing)).
+1. [Download `logic_test_bench.uf2`](https://github.com/wazp/logicAnalyzerTestBench/releases/latest/download/logic_test_bench.uf2). Hold the Pico's **BOOTSEL** button while you plug it into USB, then drag the file onto the `RP2350` drive that appears. The board restarts and the signals start right away (details in [Flashing](#flashing)).
 2. Join the Wi-Fi network **`TestBench-XXXX`** (password **`testbench`**). The guide opens as a sign-in page.
 3. Optional: in the guide's Wi-Fi settings, let the test bench join your own network, so you can read the lessons on the computer that runs your analyzer software.
 4. Connect ground, then follow the first lesson.
@@ -177,7 +197,7 @@ Any logic analyzer that reads 3.3V logic works. Connect ground first, then the s
 
 Works the same on Windows, macOS and Linux.
 
-1. Download `logic_test_bench.uf2` from the [latest release](https://github.com/wazp/logicAnalyzerTestBench/releases/latest) (or build it yourself, see below).
+1. [Download `logic_test_bench.uf2`](https://github.com/wazp/logicAnalyzerTestBench/releases/latest/download/logic_test_bench.uf2), the newest version (or build it yourself, see below). The [release page](https://github.com/wazp/logicAnalyzerTestBench/releases/latest) has the release notes and the network debug build.
 2. Unplug the Pico 2 W.
 3. Hold the **BOOTSEL** button and plug in USB. Release the button.
 4. A drive called `RP2350` appears. Drag `logic_test_bench.uf2` onto it.
