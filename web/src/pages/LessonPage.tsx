@@ -183,7 +183,7 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
             <SettingsCard settings={part.settings} />
           </div>
           <h3>What you should see</h3>
-          <ViewTabs key={part.title} gpios={lesson.gpios} views={part.views} />
+          <ViewTabs key={part.title} gpios={part.settings.gpios} views={part.views} />
         </section>
       ))}
 

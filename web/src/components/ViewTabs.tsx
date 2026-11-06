@@ -16,7 +16,7 @@ export function ViewTabs({ gpios, views }: { gpios: number[]; views: View[] }) {
     setRate(views[i].sampleRateHz);
   };
 
-  // Views of the basic signals draw every wired pin; protocol views bring their own rows.
+  // Views of the basic signals draw every pin the capture records; protocol views bring their own rows.
   const rows: Row[] = view.rows ?? gpios.map((g) => ({ gpio: g, wave: waveOf(signalByGpio(g)) }));
 
   return (
