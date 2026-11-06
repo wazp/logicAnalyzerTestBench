@@ -2,6 +2,10 @@
 # the checks that the guide's JSON data matches the firmware), the web guide,
 # and the firmware itself. The firmware .uf2 files are kept as artifacts, so
 # anyone can download a build without installing a toolchain.
+#
+# Pushing a version tag (v0.4.0) also publishes a GitHub release with the
+# firmware attached, once every job above has passed. The tag must match
+# pico_set_program_version in CMakeLists.txt.
 
 name: CI
 
@@ -107,3 +111,47 @@ jobs:
             build/logic_test_bench.uf2
             build-debug/logic_test_bench.uf2
           if-no-files-found: error
+
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [host-tests, web, firmware]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # The firmware reports this version on the console and the Wi-Fi page,
+      # so a release must never ship with a different one.
+      - name: Tag matches the firmware version
+        run: |
+          version=$(sed -n 's/^pico_set_program_version(logic_test_bench "\(.*\)")$/\1/p' CMakeLists.txt)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match pico_set_program_version \"$version\" in CMakeLists.txt."
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: logic_test_bench-${{ github.sha }}
+          path: artifact
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir release
+          cp artifact/build/logic_test_bench.uf2 release/logic_test_bench.uf2
+          cp artifact/build-debug/logic_test_bench.uf2 release/logic_test_bench-net-debug.uf2
+          cat > notes.md <<'NOTES'
+          **To install:** download `logic_test_bench.uf2`, hold the Pico 2 W's BOOTSEL button while plugging it into USB, and drag the file onto the `RP2350` drive. Updating keeps your saved Wi-Fi network. Only for the Raspberry Pi Pico 2 W (not the original Pico or Pico W).
+
+          `logic_test_bench-net-debug.uf2` is the same firmware with network logging on the USB serial console, for when a phone joins the hotspot but the guide does not appear.
+          NOTES
+          # --notes is prepended to the generated changelog. A tag with a suffix
+          # (v0.5.0-rc1, matching that version in CMakeLists.txt) becomes a prerelease.
+          prerelease=""
+          case "$GITHUB_REF_NAME" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" release/*.uf2 \
+            --title "$GITHUB_REF_NAME" --notes "$(cat notes.md)" --generate-notes $prerelease

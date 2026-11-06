@@ -26,7 +26,7 @@ Conventions for anyone (human or AI agent) working on this repository. See [READ
 
 ## Web guide (web/)
 
-- Preact + TypeScript + Vite, built into one self-contained `index.html` (vite-plugin-singlefile) that the firmware embeds. Keep it small (currently about 43 KB gzipped) and fully offline: no CDN scripts, no web fonts, no external requests.
+- Preact + TypeScript + Vite, built into one self-contained `index.html` (vite-plugin-singlefile) that the firmware embeds. Keep it small (currently about 45 KB gzipped) and fully offline: no CDN scripts, no web fonts, no external requests.
 - Lessons are data, one file per lesson in `web/src/lessons/concepts/`, `basics/`, `protocols/` or `verify/`, each exporting one `Lesson`. A lesson teaches with explanation `sections`, hands-on `parts` (captures with settings and expected waveforms), or both; one without parts wires no pins. Shared building blocks (wiring steps, example views, byte helpers) are in `web/src/lessons/helpers.ts`, the shapes in `types.ts`. `web/src/lessons/index.ts` lists the lessons in guide order; a new lesson is a new file plus one line there. Compute every number from the signal data; never type expected values by hand.
 - **Analyzer neutral.** The guide is for any logic analyzer and any software. Never name an app's menus or buttons, never number analyzer channels: refer to signals by Pico pin (`GP10`) and say "any free input". Describe settings in plain terms (sample rate, length, trigger edge on a pin, decoder parameters).
 - Every lesson must work on a small analyzer: at most 8 inputs and 24 MS/s per capture (`web/src/model/capture.ts`). The lesson tests enforce it.
@@ -79,3 +79,11 @@ All three must pass, and the firmware build must produce **no warnings** from fi
 - Short imperative subject line, blank line, then a body explaining what changed and why.
 - No `Co-Authored-By` or other attribution trailers.
 - Version follows SemVer in `pico_set_program_version` (CMakeLists.txt): bump minor for new modes or signals, patch for fixes.
+
+## Releases
+
+Pushing a tag `vX.Y.Z` makes CI (`.github/workflows/ci.yml`) build and test everything, then publish a GitHub release with `logic_test_bench.uf2` and `logic_test_bench-net-debug.uf2` attached. The README's download links point at the latest release, so it must always contain a working `.uf2`.
+
+1. Bump `pico_set_program_version` in CMakeLists.txt and merge to `main`. The release job fails if the tag and this version differ.
+2. Tag the merge commit on `main` and push the tag: `git tag v0.4.0 && git push origin v0.4.0`.
+3. A tag with a suffix (`v0.5.0-rc1`, same suffix in CMakeLists.txt) is published as a prerelease, which the "latest release" links skip.
