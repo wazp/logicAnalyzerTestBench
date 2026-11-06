@@ -18,23 +18,11 @@ namespace {
 constexpr uint32_t kOffset = PICO_FLASH_SIZE_BYTES - 2 * FLASH_SECTOR_SIZE;
 static_assert(settings::kBlobSize % FLASH_PAGE_SIZE == 0, "settings blob must be whole flash pages");
 
-struct WriteJob {
-    const uint8_t* data;  // nullptr = erase only.
-};
-
 // Runs with interrupts off and nothing executing from flash. The SDK flash
 // functions are already in RAM, so this function only needs to call them.
 void write_sector(void* param) {
-    const auto* job = static_cast<const WriteJob*>(param);
     flash_range_erase(kOffset, FLASH_SECTOR_SIZE);
-    if (job->data != nullptr) {
-        flash_range_program(kOffset, job->data, settings::kBlobSize);
-    }
-}
-
-bool run(const uint8_t* data) {
-    WriteJob job{data};
-    return flash_safe_execute(write_sector, &job, 100) == PICO_OK;
+    flash_range_program(kOffset, static_cast<const uint8_t*>(param), settings::kBlobSize);
 }
 
 }  // namespace
@@ -47,15 +35,14 @@ void settings_store_check_layout() {
     }
 }
 
-bool settings_store_load(settings::WifiSettings& out) {
+bool settings_store_load(settings::Settings& out) {
     const auto* blob = reinterpret_cast<const uint8_t*>(XIP_BASE + kOffset);
+    out = settings::Settings{};
     return settings::parse(blob, settings::kBlobSize, out);
 }
 
-bool settings_store_save(const settings::WifiSettings& s) {
+bool settings_store_save(const settings::Settings& s) {
     static uint8_t blob[settings::kBlobSize];  // Must be in RAM while flash is busy.
     settings::serialize(s, blob);
-    return run(blob);
+    return flash_safe_execute(write_sector, blob, 100) == PICO_OK;
 }
-
-bool settings_store_erase() { return run(nullptr); }

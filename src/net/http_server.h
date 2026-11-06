@@ -11,14 +11,18 @@
 //                            to /.
 //
 // API (both interfaces; the password is never returned):
-//   GET  /api/status        {"mode","ssid","ip","hostname","ap_ssid","last_error","version"}
+//   GET  /api/status        {"mode","ssid","ip","hostname","ap_ssid","last_error","version","preset"}
 //   POST /api/scan          start a scan, 202
 //   GET  /api/scan          {"scanning":bool,"networks":[{"ssid","rssi","secure"}]}
 //   POST /api/wifi          form fields ssid, password; saves and reboots
-//   POST /api/wifi/forget   erases the saved network and reboots
+//   POST /api/wifi/forget   clears the saved network (keeps the preset) and reboots
+//   POST /api/preset        form field preset ("protocols", "video"); saves it and
+//                           reboots if it changed: {"ok","preset","restarting"},
+//                           400 {"ok":false,"error":"unknown_preset"}
 //
 // Runs entirely in lwIP callbacks (interrupt context). Requests that need
-// flash writes or reboots are handed to wifi_poll() via net/wifi.h.
+// flash writes or reboots are handed to wifi_poll() via net/wifi.h, or to
+// preset_poll() via preset_control.h.
 
 #pragma once
 

@@ -137,6 +137,15 @@ void start_scan() {
     }
 }
 
+// Replaces the saved network and keeps everything else in the settings (the
+// signal preset). Re-reads flash first, so it never writes back a stale preset.
+bool store_network(const settings::WifiSettings& network) {
+    settings::Settings all;
+    settings_store_load(all);
+    all.wifi = network;
+    return settings_store_save(all);
+}
+
 void schedule_reboot() {
     reboot_pending = true;
     reboot_at = make_timeout_time_ms(kRebootDelayMs);
@@ -155,9 +164,9 @@ bool wifi_start() {
     }
 
     settings_store_check_layout();
-    if (!settings_store_load(saved)) {
-        saved = settings::WifiSettings{};
-    }
+    settings::Settings all;
+    settings_store_load(all);  // Defaults (no network) when nothing is stored.
+    saved = all.wifi;
 
     // The CYW43 driver takes the first PIO with a free state machine. The
     // signals have already claimed every state machine in PIO0 and PIO1 and
@@ -190,14 +199,14 @@ void wifi_poll() {
     }
     if (forget_requested) {
         forget_requested = false;
-        settings_store_erase();
+        store_network({});
         printf("Wi-Fi: network forgotten, restarting into the setup hotspot\n");
         schedule_reboot();
         return;
     }
     if (save_requested) {
         save_requested = false;
-        if (settings_store_save(pending_save)) {
+        if (store_network(pending_save)) {
             printf("Wi-Fi: saved \"%s\", restarting to join it\n", pending_save.ssid);
         } else {
             printf("Wi-Fi: could not write the settings to flash\n");
@@ -335,7 +344,7 @@ void wifi_set_led(bool on) {
 }
 
 void wifi_forget_and_reboot() {
-    settings_store_erase();
+    store_network({});
     printf("Wi-Fi: network forgotten, restarting into the setup hotspot\n");
     sleep_ms(200);  // Let the message reach the terminal.
     watchdog_reboot(0, 0, 0);

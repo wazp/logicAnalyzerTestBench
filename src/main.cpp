@@ -18,11 +18,13 @@
 #include "hw/square_output.h"
 #include "hw/timeline_output.h"
 #include "net/wifi.h"
+#include "preset_control.h"
 #include "pico/binary_info.h"
 #include "pico/stdlib.h"
 #include "signal_config.h"
 
-// Pin labels for `picotool info -a`.
+// Pin labels for `picotool info -a`. GP10-GP22 name both presets: "Protocols /
+// Video and input" (src/core/presets.h).
 bi_decl(bi_1pin_with_name(pins::kSquare1Hz, "1 Hz square"));
 bi_decl(bi_1pin_with_name(pins::kSquare10Hz, "10 Hz square"));
 bi_decl(bi_1pin_with_name(pins::kSquare100Hz, "100 Hz square"));
@@ -33,16 +35,16 @@ bi_decl(bi_1pin_with_name(pins::kPwm25, "PWM 25% duty"));
 bi_decl(bi_1pin_with_name(pins::kPwm75, "PWM 75% duty"));
 bi_decl(bi_1pin_with_name(pins::kPulse, "Short periodic pulse"));
 bi_decl(bi_1pin_with_name(pins::kPattern, "Irregular pattern"));
-bi_decl(bi_1pin_with_name(pins::kUartTx, "UART TX"));
-bi_decl(bi_1pin_with_name(pins::kUartRx, "UART RX (simulated device)"));
-bi_decl(bi_1pin_with_name(pins::kI2cScl, "I2C SCL"));
-bi_decl(bi_1pin_with_name(pins::kI2cSda, "I2C SDA"));
-bi_decl(bi_1pin_with_name(pins::kSpiSck, "SPI SCK"));
-bi_decl(bi_1pin_with_name(pins::kSpiMosi, "SPI MOSI"));
-bi_decl(bi_1pin_with_name(pins::kSpiMiso, "SPI MISO (simulated device)"));
-bi_decl(bi_1pin_with_name(pins::kSpiCs, "SPI CS"));
-bi_decl(bi_1pin_with_name(pins::kWs2812, "WS2812 data"));
-bi_decl(bi_1pin_with_name(pins::kOneWire, "1-Wire"));
+bi_decl(bi_1pin_with_name(pins::kUartTx, "UART TX / VGA HSYNC"));
+bi_decl(bi_1pin_with_name(pins::kUartRx, "UART RX (simulated device) / VGA VSYNC"));
+bi_decl(bi_1pin_with_name(pins::kI2cScl, "I2C SCL / VGA red"));
+bi_decl(bi_1pin_with_name(pins::kI2cSda, "I2C SDA / VGA green"));
+bi_decl(bi_1pin_with_name(pins::kSpiSck, "SPI SCK / VGA blue"));
+bi_decl(bi_1pin_with_name(pins::kSpiMosi, "SPI MOSI / NES latch"));
+bi_decl(bi_1pin_with_name(pins::kSpiMiso, "SPI MISO (simulated device) / NES clock"));
+bi_decl(bi_1pin_with_name(pins::kSpiCs, "SPI CS / NES data"));
+bi_decl(bi_1pin_with_name(pins::kWs2812, "WS2812 data / PS/2 clock"));
+bi_decl(bi_1pin_with_name(pins::kOneWire, "1-Wire / PS/2 data"));
 bi_decl(bi_1pin_with_name(pins::kIrRemote, "IR remote (NEC)"));
 bi_decl(bi_1pin_with_name(pins::kQuadratureA, "Quadrature A"));
 bi_decl(bi_1pin_with_name(pins::kQuadratureB, "Quadrature B"));
@@ -65,6 +67,9 @@ static void __no_inline_not_in_flash_func(start_signals)(uint32_t pwm_slice_mask
 int main() {
     stdio_init_all();
 
+    // The saved preset decides what GP10-GP22 play, so read it first.
+    const presets::Preset preset = preset_load();
+
     // --- Configure everything while stopped ---
     uint32_t sm_mask[3] = {0, 0, 0};  // Enabled state machines per PIO block.
     for (const auto& sq : config::kSquareSignals) {
@@ -79,8 +84,8 @@ int main() {
                         config::kBounceSegments, config::kBounceSegmentCount);
     sm_mask[config::kBouncePioIndex] |= 1u << config::kBounceSm;
 
-    // Protocol signals on GP10-GP22, one state machine for all of them.
-    timeline_output_init(config::kTimelinePioIndex, config::kTimelineSm);
+    // GP10-GP22, one state machine for all of them: the preset's frame.
+    timeline_output_init(config::kTimelinePioIndex, config::kTimelineSm, preset);
     sm_mask[config::kTimelinePioIndex] |= 1u << config::kTimelineSm;
 
     const unsigned pair_slice = pwm_output_init_pair(config::kPwmPair);
@@ -106,6 +111,7 @@ int main() {
 
     while (true) {
         wifi_poll();
+        preset_poll();
         console_poll();  // Waits up to 100 ms for a key, which paces this loop.
 
         if (bootsel_pressed()) {

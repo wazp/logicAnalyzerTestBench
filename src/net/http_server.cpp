@@ -8,6 +8,7 @@
 #include "lwip/tcp.h"
 #include "net/wifi.h"
 #include "pico/cyw43_arch.h"
+#include "preset_control.h"
 #include "wifi_config.h"
 
 // The gzip compressed guide, generated at build time (kWebPageGzip).
@@ -148,7 +149,24 @@ void handle_status(Connection& c) {
     json_field(json, sizeof(json), "ap_ssid", info.ap_ssid);
     json_field(json, sizeof(json), "last_error", wifi_error_code(info.last_error));
     json_field(json, sizeof(json), "version", PICO_PROGRAM_VERSION_STRING);
+    json_field(json, sizeof(json), "preset", presets::code(preset_active()));
     std::strncat(json, "}", sizeof(json) - std::strlen(json) - 1);
+    respond_json(c, "200 OK", json);
+}
+
+void handle_preset(Connection& c, const http::Request& r) {
+    char code[24] = {};
+    presets::Preset preset;
+    if (!http::form_value(r.body, r.body_length, "preset", code, sizeof(code)) || !presets::parse(code, preset)) {
+        respond_json(c, "400 Bad Request", "{\"ok\":false,\"error\":\"unknown_preset\"}");
+        return;
+    }
+    // Restarts only when the preset changes; the restart waits for this
+    // response to go out (preset_control.cpp).
+    const bool restarting = preset_request(preset) || preset_switch_pending();
+    char json[96];
+    std::snprintf(json, sizeof(json), "{\"ok\":true,\"preset\":\"%s\",\"restarting\":%s}", presets::code(preset),
+                  restarting ? "true" : "false");
     respond_json(c, "200 OK", json);
 }
 
@@ -236,6 +254,8 @@ void handle(Connection& c, const http::Request& r) {
             respond_json(c, "202 Accepted", "{\"scanning\":true}");
         } else if (std::strcmp(path, "/api/wifi") == 0 && post) {
             handle_save(c, r);
+        } else if (std::strcmp(path, "/api/preset") == 0 && post) {
+            handle_preset(c, r);
         } else if (std::strcmp(path, "/api/wifi/forget") == 0 && post) {
             respond_json(c, "200 OK", "{\"ok\":true}");
             wifi_request_forget();
