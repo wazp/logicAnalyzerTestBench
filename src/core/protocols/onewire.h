@@ -34,7 +34,7 @@ public:
     // The pin must be idle high.
     OneWire(wave::PinWave& dq, double sys_hz, double start_at);
 
-    void reset();                  // With a presence pulse from the device.
+    void reset(bool presence = true);  // Without `presence`, no device answers.
     void write_byte(uint8_t value);
     void read_byte(uint8_t value);  // The device answers `value`.
 

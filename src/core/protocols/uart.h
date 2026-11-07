@@ -20,10 +20,18 @@ struct UartFormat {
     unsigned stop_bits = 1;  // 1 or 2
 };
 
+// Deliberate errors for the Faults preset: the byte at `bad_stop` is sent
+// with a low first stop bit (a framing error), the byte at `bad_parity` with
+// its parity bit inverted. -1 means none.
+struct UartFaults {
+    long bad_stop = -1;
+    long bad_parity = -1;
+};
+
 // Writes `len` bytes back to back starting at cycle `start`. The pin must be
 // idle high. Returns the cycle where the last stop bit ends.
 double uart_write(wave::PinWave& pin, double start, double sys_hz, const UartFormat& format, const uint8_t* data,
-                  size_t len);
+                  size_t len, const UartFaults& faults = {});
 
 // Bit time in cycles.
 inline double uart_bit_cycles(double sys_hz, uint32_t baud) { return sys_hz / baud; }

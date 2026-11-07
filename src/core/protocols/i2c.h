@@ -31,6 +31,10 @@ public:
     // (NAK) otherwise. Whoever receives the byte drives the ACK.
     void byte(uint8_t value, bool ack);
 
+    // The target holds SCL low for `cycles` more, before the next bit
+    // (clock stretching). Call right after byte(), while SCL is low.
+    void stretch(double cycles) { t_ += cycles; }
+
     double time() const { return t_; }
 
 private:

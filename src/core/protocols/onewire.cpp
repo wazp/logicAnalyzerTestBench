@@ -24,12 +24,14 @@ void OneWire::low_then_high(double low_us, double slot_us) {
     t_ += us(slot_us);
 }
 
-void OneWire::reset() {
+void OneWire::reset(bool presence) {
     dq_.set(t_, false);
     const double release = t_ + us(kResetLowUs);
     dq_.set(release, true);
-    dq_.set(release + us(kPresenceWaitUs), false);  // Presence pulse from the device.
-    dq_.set(release + us(kPresenceWaitUs + kPresenceLowUs), true);
+    if (presence) {
+        dq_.set(release + us(kPresenceWaitUs), false);  // Presence pulse from the device.
+        dq_.set(release + us(kPresenceWaitUs + kPresenceLowUs), true);
+    }
     t_ = release + us(kResetRecoveryUs);
 }
 

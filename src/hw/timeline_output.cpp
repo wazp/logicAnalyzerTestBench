@@ -2,6 +2,7 @@
 
 #include <cstdio>
 
+#include "core/faults_frame.h"
 #include "core/protocol_frame.h"
 #include "core/timeline.h"
 #include "core/video_frame.h"
@@ -24,12 +25,13 @@ const uint32_t* words_start = words;
 
 // Toggle times while building the frame. Only needed during init, but static
 // because it is far too big for the stack. Only one preset is built per boot,
-// so both share it.
-constexpr size_t kPoolSize =
-    protocol_frame::kPoolSize > video_frame::kPoolSize ? protocol_frame::kPoolSize : video_frame::kPoolSize;
+// so they all share it.
+constexpr size_t max_size(size_t a, size_t b) { return a > b ? a : b; }
+constexpr size_t kPoolSize = max_size(max_size(protocol_frame::kPoolSize, video_frame::kPoolSize), faults_frame::kPoolSize);
 uint32_t pool[kPoolSize];
 protocol_frame::Frame frame;
 video_frame::Frame video;
+faults_frame::Frame faults;
 
 unsigned pio_index_used;
 unsigned sm_used;
@@ -69,6 +71,10 @@ void add_row(video_frame::Pin pin, const char* name, double rate_hz, const char*
     add_row(pin, video.pins[pin], video.frame_cycles, name, rate_hz, detail);
 }
 
+void add_row(faults_frame::Pin pin, const char* name, double rate_hz, const char* detail) {
+    add_row(pin, faults.pins[pin], faults.frame_cycles, name, rate_hz, detail);
+}
+
 // Builds the active preset's frame and encodes it into `words`.
 timeline::Result build_and_encode(presets::Preset preset, uint32_t sys_hz) {
     if (preset == presets::Preset::kVideo) {
@@ -76,6 +82,12 @@ timeline::Result build_and_encode(presets::Preset preset, uint32_t sys_hz) {
             panic("Video preset: %s", error);
         }
         return timeline::encode(video.pins, video_frame::kPinCount, video.frame_cycles, words, kMaxWords);
+    }
+    if (preset == presets::Preset::kFaults) {
+        if (const char* error = faults_frame::build(faults, config::kFaults, sys_hz, pool)) {
+            panic("Faults preset: %s", error);
+        }
+        return timeline::encode(faults.pins, faults_frame::kPinCount, faults.frame_cycles, words, kMaxWords);
     }
     if (const char* error = protocol_frame::build(frame, config::kProtocols, sys_hz, pool)) {
         panic("Protocol signals: %s", error);
@@ -134,6 +146,27 @@ void add_video_rows(uint32_t sys_hz) {
     add_row(video_frame::kPs2Data, "PS/2 data (keyboard)", c.ps2_clock_hz, detail);
 }
 
+void add_faults_rows() {
+    const config::FaultsConfig& c = config::kFaults;
+    char detail[48];
+    snprintf(detail, sizeof(detail), "8N1: good, %.0f%% slow, framing error", c.uart_slow_percent);
+    add_row(faults_frame::kUartTx, "UART TX (faults)", c.uart_baud, detail);
+    add_row(faults_frame::kUartParity, "UART 8E1 (faults)", c.uart_baud, "good, then a parity error");
+    snprintf(detail, sizeof(detail), "0x%02X: clock stretch, data NAK", c.i2c_address);
+    add_row(faults_frame::kI2cScl, "I2C SCL (faults)", c.i2c_hz, detail);
+    add_row(faults_frame::kI2cSda, "I2C SDA (faults)", c.i2c_hz, detail);
+    snprintf(detail, sizeof(detail), "CS abort after %u bits, retry", c.spi_abort_bits);
+    add_row(faults_frame::kSpiSck, "SPI SCK (faults)", c.spi_hz, detail);
+    add_row(faults_frame::kSpiMosi, "SPI MOSI (faults)", c.spi_hz, detail);
+    add_row(faults_frame::kSpiMiso, "SPI MISO (faults)", c.spi_hz, "then a device in mode 1");
+    add_row(faults_frame::kSpiCs, "SPI CS (faults)", 0.0, detail);
+    snprintf(detail, sizeof(detail), "LED %ld has a %lu ns bit", c.ws2812_bad_led + 1,
+             static_cast<unsigned long>(c.ws2812_bad_high_ns));
+    add_row(faults_frame::kWs2812, "WS2812 data (faults)", 800000.0, detail);
+    add_row(faults_frame::kOneWire, "1-Wire (faults)", 0.0, "no presence, then a bad CRC");
+    add_row(faults_frame::kIrq, "Interrupt (active low)", 0.0, "2 pulses, 3 glitches");
+}
+
 }  // namespace
 
 void timeline_output_init(unsigned pio_index, unsigned sm, presets::Preset preset) {
@@ -169,6 +202,8 @@ void timeline_output_init(unsigned pio_index, unsigned sm, presets::Preset prese
     // --- Status rows, one per pin ---
     if (preset == presets::Preset::kVideo) {
         add_video_rows(sys_hz);
+    } else if (preset == presets::Preset::kFaults) {
+        add_faults_rows();
     } else {
         add_protocol_rows();
     }
