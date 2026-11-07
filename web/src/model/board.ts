@@ -10,6 +10,7 @@ import { faultsPins } from './faults';
 import { defaultPreset, type PresetId } from './presets';
 import { protocolPins } from './protocols';
 import { signalByGpio, signals } from './signals';
+import { verifyPins } from './verify';
 import { videoPins } from './video';
 
 const basicShort: Record<number, string> = {
@@ -64,7 +65,10 @@ const faultsShort: Record<string, string> = {
 
 /** The timeline pins of a preset, with their names. */
 function timelinePins(preset: PresetId): { gpio: number; name: string; role: string; part?: string }[] {
-  return preset === 'video' ? videoPins : preset === 'faults' ? faultsPins : protocolPins;
+  if (preset === 'video') return videoPins;
+  if (preset === 'faults') return faultsPins;
+  if (preset === 'verify') return verifyPins;
+  return protocolPins;
 }
 
 export function isBasicSignal(gpio: number): boolean {
@@ -84,6 +88,10 @@ export function shortLabel(gpio: number, preset: PresetId = defaultPreset): stri
   if (preset === 'video') {
     const v = videoPins.find((x) => x.gpio === gpio);
     return v ? (videoShort[`${v.part}.${v.role}`] ?? v.role.toUpperCase()) : `GP${gpio}`;
+  }
+  if (preset === 'verify') {
+    const v = verifyPins.find((x) => x.gpio === gpio);
+    return v ? (v.role === 'burst' ? 'BURST' : `B${v.bit}`) : `GP${gpio}`;
   }
   if (preset === 'faults') {
     const f = faultsPins.find((x) => x.gpio === gpio);

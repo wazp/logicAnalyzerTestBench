@@ -118,6 +118,22 @@ The third preset, built by [src/core/faults_frame.cpp](../src/core/faults_frame.
 
 GP21 and GP22 are held low in this preset.
 
+## Verify preset (GP10 to GP22): the same timeline
+
+The fourth preset, built by [src/core/verify_frame.cpp](../src/core/verify_frame.cpp), plays a binary counter and frequency bursts for checking analyzers.
+
+- **Counter:** 12 bits on GP10-GP21, one count every 2 µs (300 cycles), so a frame is one full count: 8.192 ms, about 4,300 timeline words. Every count is one timeline word, so all the bits that change at a count change in the same `out pins` instruction: there is no skew between them at the Pico's pins.
+- **Bursts:** 16 periods each at 25, 18.75, 15, 12.5, 7.5, 5, 2.5 and 1 MHz on GP22. The half periods are 3, 4, 5, 6, 10, 15, 30 and 75 cycles. 25 MHz is the fastest square wave the timeline can play (its minimum word is 3 cycles). Every half period divides the 300-cycle counter step and every burst starts on a step, so burst and counter edges share words and the encoder never moves an edge.
+
+| Signal | Timing | Precision |
+|---|---|---|
+| Counter bits 0 to 11 | bit n: period 2^(n+1) x 2 µs, 50% duty | exact |
+| Bursts | 25 MHz to 1 MHz, 16 periods each | exact |
+
+At the pins, the 25 MHz burst is limited by the GPIO pads' drive strength and slew rate and by the wiring; the timing is exact, but the edges are not instantaneous.
+
+The fastest burst needs a new timeline word every 3 cycles for 32 words in a row. The 8-deep joined TX FIFO covers part of that, and the DMA has to deliver the rest at about one word every 4 cycles. If it ever fell behind, the state machine would stall on its `out`, which stretches a pulse rather than corrupting it. Not yet measured on hardware.
+
 ## Start alignment
 
 All signal state machines (PIO0, PIO1 and PIO2 SM0) are enabled on the same clock cycle: `pio_enable_sm_multi_mask_in_sync` on PIO1 also enables its neighbors PIO0 and PIO2 in the same register write. So the square waves, both patterns and the protocol frame share t = 0. The two PWM slices start together right after that, from the next store instruction. Both writes run from RAM with interrupts off (`start_signals` in `src/main.cpp`), so PWM edges trail PIO edges by a few cycles. Measured on a board at 100 MS/s: GP8 rises 2 to 3 samples (20-30 ns) after GP3, under one sample at 24 MS/s and visible only at very high sample rates. Run from flash, an XIP cache miss between the two writes once put them about 3 us apart.

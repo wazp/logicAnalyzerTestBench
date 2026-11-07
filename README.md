@@ -37,7 +37,7 @@ On the hotspot the guide runs on your phone, so it can sit next to the analyzer:
 | Protocols | UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder, what wrong decoder settings look like, and (optional) stacked sigrok decoders |
 | Video and input | VGA video timing, an NES controller, a PS/2 keyboard (with the Video and input preset) |
 | Find the bug | UART with a slow sender, a framing and a parity error; I²C clock stretching and a refused write; SPI cut short and in the wrong mode; a marginal WS2812 bit; 1-Wire with no device and a bad CRC; glitch hunting (with the Faults preset) |
-| Verify | Sanity check of every analyzer input with a pass/fail checklist, clock accuracy in ppm |
+| Verify | Sanity check of every analyzer input with a pass/fail checklist, clock accuracy in ppm, every input and the skew between them, and how fast your analyzer really goes (with the Verify preset) |
 
 Every lesson needs at most **8 inputs** and **24 MS/s**, so even the cheapest USB analyzers can follow all of them. Signals are named by Pico pin (GP0, GP10...) rather than analyzer channel, and every expected waveform in the guide is computed from the same configuration the firmware uses, so the guide and the board can't disagree.
 
@@ -126,12 +126,13 @@ GP10 to GP22 play one **preset** at a time. GP0 to GP9 and the GP26 button never
 | **Protocols** (default) | UART, I²C, SPI, WS2812, 1-Wire, IR remote and a quadrature encoder, as listed above |
 | **Video and input** | A VGA picture, an NES controller and a PS/2 keyboard, listed below |
 | **Faults** | The protocol buses with realistic mistakes to find, each next to a good transaction, and an interrupt line with glitches, listed below |
+| **Verify** | A 12-bit binary counter and frequency bursts up to 25 MHz, for checking an analyzer, listed below |
 
 To switch, use any of these:
 
 - **Settings > Signal preset** in the guide. Lessons that need the other preset also show a **Switch** button at the top.
 - Press `p` on the [serial console](#usb-serial-console), then the preset's number.
-- `POST /api/preset` with the form field `preset=protocols`, `preset=video` or `preset=faults`.
+- `POST /api/preset` with the form field `preset=protocols`, `preset=video`, `preset=faults` or `preset=verify`.
 
 Switching saves the preset and restarts the board, which takes a few seconds, so every signal starts in step again. The board remembers the preset when unplugged, and a saved Wi-Fi network is kept. On the setup hotspot, your phone may need to rejoin `TestBench-XXXX` after the restart.
 
@@ -168,6 +169,13 @@ The buses sit on the same pins as in the Protocols preset, so the wiring of the 
 | GP19 | 25 | 1-Wire | A reset nobody answers (no presence pulse), then a scratchpad read with a bad CRC |
 | GP20 | 26 | Interrupt line, active low | Two real 10 µs pulses, and glitches of 20, 40 and 100 ns at irregular times |
 | GP21-GP22 | 27, 29 | (none) | Held low in this preset |
+
+#### Verify preset
+
+| GPIO | Physical pin | Signal | What it carries |
+|---|---|---|---|
+| GP10-GP21 | 14-27 | Counter bits 0 to 11 | A 12-bit binary counter, one count every 2 µs: GP10 is 250 kHz, each pin after it half the frequency of the one before. All bits that change together change in the same PIO instruction, so they are a test for skew between analyzer inputs. One full count is 8.192 ms. |
+| GP22 | 29 | Frequency bursts | 16 periods each of 25, 18.75, 15, 12.5, 7.5, 5, 2.5 and 1 MHz, once per count, to find where an analyzer stops keeping up |
 
 ### The GP26 bouncing button
 

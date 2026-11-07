@@ -42,7 +42,9 @@ import { uart } from './protocols/uart';
 import { ws2812 } from './protocols/ws2812';
 import type { Lesson } from './types';
 import { clockAccuracy } from './verify/clock-accuracy';
+import { counterCheck } from './verify/counter';
 import { sanityCheck } from './verify/sanity-check';
+import { speedTest } from './verify/speed-test';
 import { nesController } from './video/nes';
 import { ps2Keyboard } from './video/ps2';
 import { vgaLesson } from './video/vga';
@@ -95,6 +97,8 @@ export const lessons: Lesson[] = [
   // Verify your analyzer.
   sanityCheck,
   clockAccuracy,
+  counterCheck,
+  speedTest,
 ];
 
 export function lessonById(id: string): Lesson | undefined {
