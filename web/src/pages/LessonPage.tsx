@@ -94,6 +94,11 @@ function ConceptSection({ section }: { section: Section }) {
           ))}
         </ul>
       )}
+      {section.code && (
+        <pre class="code-block">
+          <code>{section.code}</code>
+        </pre>
+      )}
       {section.figure === 'thresholds' && <ThresholdDiagram />}
       {section.table && (
         <div class="table-scroll">

@@ -15,5 +15,8 @@
     "noEmit": true,
     "types": ["vite/client"]
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "vite.config.ts"],
+  // Tests that need Node's own modules (they run scripts) are type-checked by Vitest's transform only,
+  // so the guide does not need Node's type definitions.
+  "exclude": ["src/**/*.node.test.ts"]
 }

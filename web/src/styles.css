@@ -1294,3 +1294,19 @@ body:has(.zoom-dialog[open]) {
   background: var(--surface-2);
   border-radius: var(--radius);
 }
+
+.code-block {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.code-block code {
+  background: none;
+  padding: 0;
+}

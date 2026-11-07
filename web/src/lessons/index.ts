@@ -9,6 +9,7 @@
 import { aliasing } from './basics/aliasing';
 import { captureWindowLesson } from './basics/capture-window';
 import { dutyCycle } from './basics/duty-cycle';
+import { exportScripting } from './basics/export-scripting';
 import { findOneEvent } from './basics/find-one-event';
 import { firstCapture } from './basics/first-capture';
 import { isItAlive } from './basics/is-it-alive';
@@ -63,6 +64,7 @@ export const lessons: Lesson[] = [
   mysterySignal,
   timingBetween,
   findOneEvent,
+  exportScripting,
   // Protocols, on GP10-GP22.
   uart,
   i2c,
