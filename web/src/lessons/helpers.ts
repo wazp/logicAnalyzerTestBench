@@ -36,6 +36,10 @@ export const wireSteps = (gpios: number[]) => [
   `Connect ${pinList(gpios)} to free analyzer inputs. Any inputs will do; note which one got which pin.`,
 ];
 
+/** For captures whose events are further apart than many programs show on one screen. */
+export const scrollStep =
+  'If your software shows only part of a long capture at once, scroll from one event to the next, or place markers on them to measure the time between.';
+
 export const protocolWarning =
   'These pins drive their lines like a real device would look on an analyzer, but they are push-pull outputs. Never connect them to a real bus, sensor or LED strip.';
 

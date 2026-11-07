@@ -4,7 +4,7 @@
 import { formatHz, formatTime } from '../../model/format';
 import { hexByte } from '../../model/protocols';
 import { videoData, videoExample, videoGpio } from '../../model/video';
-import { exampleViewOf, lsbFirst, placedRows, wireSteps } from '../helpers';
+import { exampleViewOf, lsbFirst, placedRows, scrollStep, wireSteps } from '../helpers';
 import type { Lesson } from '../types';
 
 const clock = videoGpio('ps2', 'clock');
@@ -80,6 +80,7 @@ export const ps2Keyboard: Lesson = {
       steps: [
         `Capture ${formatTime(longNs)}, with the same trigger.`,
         'Find the three bytes and decode each one. Which is the press and which is the release?',
+        scrollStep,
       ],
       views: [
         {

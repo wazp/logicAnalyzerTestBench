@@ -15,7 +15,7 @@ import {
   vsyncNs,
   vsyncStartNs,
 } from '../../model/video';
-import { exampleViewOf, wireSteps } from '../helpers';
+import { exampleViewOf, scrollStep, wireSteps } from '../helpers';
 import type { Lesson } from '../types';
 
 const hsync = videoGpio('vga', 'hsync');
@@ -131,6 +131,7 @@ export const vgaLesson: Lesson = {
       steps: [
         `Keep GP${hsync} and GP${vsync} connected. Capture ${formatTime(frameEnd)}, triggered on the falling edge of GP${vsync} (VSYNC).`,
         'Measure the time between two VSYNC pulses (the frame period) and work out the frame rate.',
+        scrollStep,
         'Zoom in on the VSYNC pulse and count the HSYNC pulses while it is low.',
       ],
       views: [

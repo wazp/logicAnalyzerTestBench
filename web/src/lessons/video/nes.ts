@@ -3,7 +3,7 @@
 
 import { formatHz, formatTime } from '../../model/format';
 import { frameHz, nesPressed, vga, videoData, videoExample, videoGpio } from '../../model/video';
-import { andList, exampleViewOf, placedRows, wireSteps } from '../helpers';
+import { andList, exampleViewOf, placedRows, scrollStep, wireSteps } from '../helpers';
 import type { Lesson } from '../types';
 
 const latch = videoGpio('nes', 'latch');
@@ -85,6 +85,7 @@ export const nesController: Lesson = {
       steps: [
         `Capture ${formatTime(longNs)}, with the same trigger.`,
         'Measure the time between two LATCH pulses and compare it with the frame rate of the VGA lesson.',
+        scrollStep,
       ],
       views: [
         {
