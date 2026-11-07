@@ -26,8 +26,9 @@ describe('lessons', () => {
     }
   });
 
-  it('put every video preset lesson in the video track', () => {
+  it('put every video and faults preset lesson in its own track', () => {
     for (const l of lessons) expect(l.track === 'video').toBe(l.preset === 'video');
+    for (const l of lessons) expect(l.track === 'faults').toBe(l.preset === 'faults');
     expect(lessons.filter((l) => l.track === 'video').map((l) => l.id)).toEqual(['vga', 'nes-controller', 'ps2-keyboard']);
   });
 

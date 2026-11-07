@@ -6,7 +6,7 @@ Work we plan to do, roughly in priority order within each section. The README's 
 
 - [x] **Timing between two signals.** Measuring the delay from one signal to another: the UART reply after each TX message, MOSI changing relative to SCK, and the phase between quadrature A and B (which also gives the direction). Uses the Protocols preset; no firmware change.
 - [x] **When the decoder shows garbage.** The usual reasons a decode looks wrong, each shown on a real capture: I²C addresses written as 7-bit or shifted to 8-bit, the wrong SPI mode, LSB or MSB first, a wrong baud rate or inverted UART, and swapped clock and data lines. Pairs with the Faults preset below.
-- [ ] **Glitch hunting.** Catching a rare, very short glitch: with a pulse-width trigger where the analyzer has one, otherwise by sampling fast enough and searching the capture. Needs the glitch pin (see Firmware).
+- [x] **Glitch hunting.** Catching a rare, very short glitch: with a pulse-width trigger where the analyzer has one, otherwise by sampling fast enough and searching the capture. Done as a Find the bug lesson on the Faults preset's interrupt line (GP20).
 - [x] **What a logic analyzer can't show you.** A concepts lesson without captures: ringing, slow edges, runt pulses and bus contention all turn into clean-looking 0s and 1s (or extra edges). When the picture is lying, and when a scope is the right tool. Reuse the threshold diagram from "Voltage levels and thresholds".
 - [x] **Memory depth and long captures.** Why sample rate times length runs into the analyzer's buffer, what compression (RLE) does for quiet signals, and streaming vs buffered capture. Also that some software shows only part of a long capture at once.
 - [x] **Finding one event in a long recording.** Locating a single rare event (the I²C NAK from 0x49, the IR repeat code) in a long capture. Harder to keep analyzer neutral, since search features differ a lot between programs.
@@ -27,20 +27,20 @@ For people building or checking their own analyzer.
 
 ## Firmware and signals
 
-- [ ] **"Faults" preset: find the bug.** The protocols the bench plays today are all perfect; real debugging starts from a broken one. A preset where each protocol misbehaves in a realistic way, each with a "here is the symptom, find the cause" lesson in the style of "What is this signal?":
+- [x] **"Faults" preset: find the bug.** The protocols the bench plays today are all perfect; real debugging starts from a broken one. A preset where each protocol misbehaves in a realistic way, each with a "here is the symptom, find the cause" lesson in the style of "What is this signal?":
   - I²C: a device that never ACKs, and one that stretches the clock.
   - UART: a sender a few percent off the baud rate, a framing error, a parity error.
   - SPI: CS rising in the middle of a byte, a device answering in the wrong SPI mode.
   - WS2812: one bit slightly too short, so one LED shows the wrong color.
   - Keep each fault deterministic and documented in the exporter, so the lessons compute their answers like every other lesson.
-- [ ] **Glitch pin.** A rare, very short glitch (about 50 ns, a few times per second, not periodic) on a free pin (GP28), for the glitch hunting lesson.
+- [x] **Glitch pin.** Done on the timeline instead of GP28: the Faults preset's interrupt line (GP20) has 20, 40 and 100 ns glitches at irregular times, which keeps GP27 and GP28 free.
 - [ ] **"CPU bus" preset.** A 6502-style bus (PHI2, R/W, /RESET, a ROM select and D0-D7), read half the data bus per capture, with a lesson on state (clocked) capture.
 - [ ] **Commodore IEC serial bus** on GP20-GP22, the pins the Video and input preset leaves free. Left out of 0.5.0 because the handshake is easy to simulate wrongly.
 - [ ] **Protocol settings from the guide.** A few validated choices per protocol (for example a baud rate from a list), not free-form values.
 - [ ] **More signals:** CAN, servo PWM, I2S audio, simulated Commodore 64 bus traffic.
 - [ ] **USB drive next to the serial port,** with `WIFI.TXT` to set the network before first boot and `STATUS.TXT` showing the IP address.
 
-GP27 and GP28 are the only free pins, so the speed test and the glitch pin use both of them. Anything after that needs a preset of its own.
+GP27 and GP28 are the only free pins. Anything that does not fit a timeline preset needs one of them.
 
 ## Guide
 

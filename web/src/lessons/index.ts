@@ -2,7 +2,7 @@
 // written out here rather than discovered from the files.
 //
 // To add a lesson: create one file exporting a `Lesson` in concepts/,
-// basics/, protocols/, video/ or verify/ (shared building blocks are in helpers.ts, the shapes
+// basics/, protocols/, video/, faults/ or verify/ (shared building blocks are in helpers.ts, the shapes
 // in types.ts), then add it to this list. The tests in lessons.test.ts check
 // every lesson listed here.
 
@@ -18,6 +18,12 @@ import { patternTrigger } from './basics/pattern-trigger';
 import { rareEvent } from './basics/rare-event';
 import { switchBounce } from './basics/switch-bounce';
 import { timingBetween } from './basics/timing-between';
+import { faultsGlitch } from './faults/glitch';
+import { faultsI2c } from './faults/i2c';
+import { faultsOnewire } from './faults/onewire';
+import { faultsSpi } from './faults/spi';
+import { faultsUart } from './faults/uart';
+import { faultsWs2812 } from './faults/ws2812';
 import { gotchas } from './concepts/gotchas';
 import { howItWorks } from './concepts/how-it-works';
 import { limits } from './concepts/limits';
@@ -79,6 +85,13 @@ export const lessons: Lesson[] = [
   vgaLesson,
   nesController,
   ps2Keyboard,
+  // Find the bug, on GP10-GP20 with the "Faults" preset.
+  faultsUart,
+  faultsI2c,
+  faultsSpi,
+  faultsWs2812,
+  faultsOnewire,
+  faultsGlitch,
   // Verify your analyzer.
   sanityCheck,
   clockAccuracy,

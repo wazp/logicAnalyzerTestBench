@@ -4,6 +4,7 @@ import { Zoomable } from '../components/Zoomable';
 import { lessons } from '../lessons';
 import { allSignalGpios, signalColor } from '../model/board';
 import { minimumAnalyzer } from '../model/capture';
+import { faultsGpio } from '../model/faults';
 import { formatHz, formatPercent, formatRate, formatTime } from '../model/format';
 import { physicalPinForGpio } from '../model/pico';
 import { frameMs, protocolData as d, protocolPins, type ProtocolId } from '../model/protocols';
@@ -53,8 +54,8 @@ export function HomePage() {
         <p class="lede">
           This Pico 2 W is outputting {allSignalGpios.length} known test signals right now: square waves and pulses to
           learn the basics, a push button that bounces, and the protocols you will meet on real boards (UART, I²C, SPI,
-          WS2812, 1-Wire, IR, a rotary encoder). A second preset swaps the protocols for a VGA picture, an NES
-          controller and a PS/2 keyboard. Follow the lessons to learn how to set up, trigger, decode and read
+          WS2812, 1-Wire, IR, a rotary encoder). Other presets swap the protocols for a VGA picture, an NES
+          controller and a PS/2 keyboard, or for the same buses with realistic mistakes to find. Follow the lessons to learn how to set up, trigger, decode and read
           captures, or run the checks to verify an analyzer.
         </p>
       </header>
@@ -158,7 +159,7 @@ export function HomePage() {
                 </tbody>
               </table>
             </div>
-            <h3>Video and input (the other preset)</h3>
+            <h3>Video and input (another preset)</h3>
             <p class="muted small">
               The same pins, switched under <a href="#/preset">Settings, Signal preset</a>. GP
               {v.unusedGpios[0]}-GP{v.unusedGpios[v.unusedGpios.length - 1]} are held low in this preset.
@@ -183,6 +184,12 @@ export function HomePage() {
                 </tbody>
               </table>
             </div>
+            <h3>Faults (another preset)</h3>
+            <p class="muted small">
+              The same buses on the same pins, each with realistic mistakes next to a good transaction, plus an
+              interrupt line with glitches on GP{faultsGpio('irq', 'irq')}. See the <a href="#/preset">preset page</a>{' '}
+              for the full list and the Find the bug lessons.
+            </p>
           </div>
         </div>
         <p class="muted small">

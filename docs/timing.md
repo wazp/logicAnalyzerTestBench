@@ -108,6 +108,16 @@ The other [signal preset](../README.md#signal-presets) plays a different frame o
 
 GP20 to GP22 are held low in this preset.
 
+## Faults preset (GP10 to GP20): the same timeline
+
+The third preset, built by [src/core/faults_frame.cpp](../src/core/faults_frame.cpp), plays the protocol buses with deliberate mistakes. It uses the same encoders and the same 120 ms frame length as the Protocols preset, so the precision is the same: every edge within half a cycle of where its protocol puts it.
+
+- **Frame:** 120 ms, about 1,700 timeline words, and no edge needs moving by the encoder (the minimum 3-cycle word never applies).
+- **The faults are exact:** the slow UART sender is 111,744 baud (115,200 minus 3%), the I²C stretch adds 150 µs to one SCL low half, the wrong-mode SPI device changes MISO 100 ns (15 cycles) after each rising SCK edge, and the marginal WS2812 bit is 550 ns (82.5 cycles, rounded per edge) high.
+- **Glitches:** the interrupt line on GP20 has low glitches of 20, 40 and 100 ns (3, 6 and 15 cycles). 20 ns is the shortest pulse the timeline can play (one 3-cycle word). The host tests replay the encoded words and check every glitch keeps its exact width.
+
+GP21 and GP22 are held low in this preset.
+
 ## Start alignment
 
 All signal state machines (PIO0, PIO1 and PIO2 SM0) are enabled on the same clock cycle: `pio_enable_sm_multi_mask_in_sync` on PIO1 also enables its neighbors PIO0 and PIO2 in the same register write. So the square waves, both patterns and the protocol frame share t = 0. The two PWM slices start together right after that, from the next store instruction. Both writes run from RAM with interrupts off (`start_signals` in `src/main.cpp`), so PWM edges trail PIO edges by a few cycles. Measured on a board at 100 MS/s: GP8 rises 2 to 3 samples (20-30 ns) after GP3, under one sample at 24 MS/s and visible only at very high sample rates. Run from flash, an XIP cache miss between the two writes once put them about 3 us apart.
@@ -137,4 +147,4 @@ A common exercise: capture GP5 (100 kHz) at 200 kS/s and watch it alias. Then ra
 - **5V systems (C64):** The Commodore 64 bus is 5V TTL. 3.3V outputs are usually read as high by TTL inputs (threshold about 2.0V), but anything driving back into the Pico must be level shifted. Plan for level shifters before connecting to real hardware.
 - **RP2350 erratum E9:** GPIO inputs with the internal pull-down enabled can latch high. It does not affect outputs, but matters once inputs are added (for example clock inputs or bus snooping). Use external pull-downs if needed.
 - **PIO capacity:** PIO0 and PIO1 are full (4 state machines each; PIO1 SM3 plays the timeline of the active preset). PIO2 SM0 plays the GP26 button. The CYW43 Wi-Fi driver takes the first PIO with a free state machine, which is therefore PIO2 (SM1, 7 instructions). PIO2 has two state machines left after that.
-- **More protocols** don't need more state machines: add an encoder in `src/core/protocols/` and a slot in the protocol frame. They do need pins, though, and all 13 timeline pins are taken in the Protocols preset; the timeline cannot grow past GP22 because GP23 to GP25 belong to the Wi-Fi chip. Signals that cannot share a frame get a preset of their own, a new frame builder for the same state machine, as the Video and input preset does. That preset still has GP20 to GP22 free.
+- **More protocols** don't need more state machines: add an encoder in `src/core/protocols/` and a slot in the protocol frame. They do need pins, though, and all 13 timeline pins are taken in the Protocols preset; the timeline cannot grow past GP22 because GP23 to GP25 belong to the Wi-Fi chip. Signals that cannot share a frame get a preset of their own, a new frame builder for the same state machine, as the Video and input preset does. That preset still has GP20 to GP22 free; the Faults preset has GP21 and GP22.

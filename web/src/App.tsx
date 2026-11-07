@@ -54,6 +54,8 @@ function Nav({ route, open }: { route: string; open: boolean }) {
       {track('protocols')}
       <div class="nav-group">Video and input</div>
       {track('video')}
+      <div class="nav-group">Find the bug</div>
+      {track('faults')}
       <div class="nav-group">Verify</div>
       {track('verify')}
       <div class="nav-group">Settings</div>

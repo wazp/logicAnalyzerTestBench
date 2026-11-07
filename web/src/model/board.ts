@@ -6,6 +6,7 @@
 // number their inputs differently (CH1, D0, 0...), and a learner with 8
 // inputs wires each lesson differently from one with 24.
 
+import { faultsPins } from './faults';
 import { defaultPreset, type PresetId } from './presets';
 import { protocolPins } from './protocols';
 import { signalByGpio, signals } from './signals';
@@ -54,6 +55,18 @@ const videoShort: Record<string, string> = {
   'ps2.data': 'KDAT',
 };
 
+// Faults preset: two UART lines, so the second gets its own label.
+const faultsShort: Record<string, string> = {
+  'uart.tx': 'TX',
+  'parity.tx': 'TX 8E1',
+  'irq.irq': 'IRQ',
+};
+
+/** The timeline pins of a preset, with their names. */
+function timelinePins(preset: PresetId): { gpio: number; name: string; role: string; part?: string }[] {
+  return preset === 'video' ? videoPins : preset === 'faults' ? faultsPins : protocolPins;
+}
+
 export function isBasicSignal(gpio: number): boolean {
   return signals.some((s) => s.gpio === gpio);
 }
@@ -61,7 +74,7 @@ export function isBasicSignal(gpio: number): boolean {
 /** The pin's signal in a preset; GP10-GP22 change with the preset, the others never do. */
 export function signalName(gpio: number, preset: PresetId = defaultPreset): string {
   if (isBasicSignal(gpio)) return signalByGpio(gpio).name;
-  const p = (preset === 'video' ? videoPins : protocolPins).find((x) => x.gpio === gpio);
+  const p = timelinePins(preset).find((x) => x.gpio === gpio);
   if (!p) throw new Error(`no signal on GP${gpio} in the ${preset} preset`);
   return p.name;
 }
@@ -71,6 +84,10 @@ export function shortLabel(gpio: number, preset: PresetId = defaultPreset): stri
   if (preset === 'video') {
     const v = videoPins.find((x) => x.gpio === gpio);
     return v ? (videoShort[`${v.part}.${v.role}`] ?? v.role.toUpperCase()) : `GP${gpio}`;
+  }
+  if (preset === 'faults') {
+    const f = faultsPins.find((x) => x.gpio === gpio);
+    return f ? (faultsShort[`${f.part}.${f.role}`] ?? protocolShort[f.role] ?? f.role.toUpperCase()) : `GP${gpio}`;
   }
   const p = protocolPins.find((x) => x.gpio === gpio);
   return p ? (protocolShort[p.role] ?? p.role.toUpperCase()) : `GP${gpio}`;

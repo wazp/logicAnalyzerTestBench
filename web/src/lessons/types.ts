@@ -65,7 +65,7 @@ export interface Section {
 
 export interface Lesson {
   id: string;
-  track: 'concepts' | 'learn' | 'protocols' | 'video' | 'verify';
+  track: 'concepts' | 'learn' | 'protocols' | 'video' | 'faults' | 'verify';
   /** The signal preset GP10-GP22 must play. Omitted: the default, protocols. */
   preset?: PresetId;
   /** Finding out what the pins carry is the exercise: the page hides their names, and parts show no waveforms. */
