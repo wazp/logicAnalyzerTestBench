@@ -25,7 +25,8 @@
 
 // Pin labels for `picotool info -a`. GP10-GP22 name the Protocols and Video
 // and input presets (src/core/presets.h); the Faults preset uses the protocol
-// pins for the same buses, plus an interrupt line on GP20.
+// pins for the same buses, plus an interrupt line on GP20, and the Verify
+// preset plays a binary counter on GP10-GP21 and frequency bursts on GP22.
 bi_decl(bi_1pin_with_name(pins::kSquare1Hz, "1 Hz square"));
 bi_decl(bi_1pin_with_name(pins::kSquare10Hz, "10 Hz square"));
 bi_decl(bi_1pin_with_name(pins::kSquare100Hz, "100 Hz square"));
@@ -48,7 +49,7 @@ bi_decl(bi_1pin_with_name(pins::kWs2812, "WS2812 data / PS/2 clock"));
 bi_decl(bi_1pin_with_name(pins::kOneWire, "1-Wire / PS/2 data"));
 bi_decl(bi_1pin_with_name(pins::kIrRemote, "IR remote (NEC) / interrupt line (Faults)"));
 bi_decl(bi_1pin_with_name(pins::kQuadratureA, "Quadrature A"));
-bi_decl(bi_1pin_with_name(pins::kQuadratureB, "Quadrature B"));
+bi_decl(bi_1pin_with_name(pins::kQuadratureB, "Quadrature B / frequency bursts (Verify)"));
 bi_decl(bi_1pin_with_name(pins::kBounce, "Bouncing button"));
 
 // Starts every signal state machine in all three PIO blocks (PIO1 enables its

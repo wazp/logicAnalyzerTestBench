@@ -5,6 +5,7 @@
 #include "core/faults_frame.h"
 #include "core/protocol_frame.h"
 #include "core/timeline.h"
+#include "core/verify_frame.h"
 #include "core/video_frame.h"
 #include "hardware/clocks.h"
 #include "hardware/pio.h"
@@ -27,11 +28,13 @@ const uint32_t* words_start = words;
 // because it is far too big for the stack. Only one preset is built per boot,
 // so they all share it.
 constexpr size_t max_size(size_t a, size_t b) { return a > b ? a : b; }
-constexpr size_t kPoolSize = max_size(max_size(protocol_frame::kPoolSize, video_frame::kPoolSize), faults_frame::kPoolSize);
+constexpr size_t kPoolSize = max_size(max_size(protocol_frame::kPoolSize, video_frame::kPoolSize),
+                                      max_size(faults_frame::kPoolSize, verify_frame::kPoolSize));
 uint32_t pool[kPoolSize];
 protocol_frame::Frame frame;
 video_frame::Frame video;
 faults_frame::Frame faults;
+verify_frame::Frame verify;
 
 unsigned pio_index_used;
 unsigned sm_used;
@@ -88,6 +91,12 @@ timeline::Result build_and_encode(presets::Preset preset, uint32_t sys_hz) {
             panic("Faults preset: %s", error);
         }
         return timeline::encode(faults.pins, faults_frame::kPinCount, faults.frame_cycles, words, kMaxWords);
+    }
+    if (preset == presets::Preset::kVerify) {
+        if (const char* error = verify_frame::build(verify, config::kVerify, sys_hz, pool)) {
+            panic("Verify preset: %s", error);
+        }
+        return timeline::encode(verify.pins, verify_frame::kPinCount, verify.frame_cycles, words, kMaxWords);
     }
     if (const char* error = protocol_frame::build(frame, config::kProtocols, sys_hz, pool)) {
         panic("Protocol signals: %s", error);
@@ -167,6 +176,23 @@ void add_faults_rows() {
     add_row(faults_frame::kIrq, "Interrupt (active low)", 0.0, "2 pulses, 3 glitches");
 }
 
+void add_verify_rows(uint32_t sys_hz) {
+    const config::VerifyConfig& c = config::kVerify;
+    const double step_hz = 1e9 / c.counter_step_ns;
+    for (unsigned b = 0; b < verify_frame::kCounterPins; ++b) {
+        char name[24];
+        snprintf(name, sizeof(name), "Counter bit %u", b);
+        // Bit n is a square wave of period 2^(n+1) steps.
+        const double hz = step_hz / static_cast<double>(2u << b);
+        add_row(b, verify.pins[b], verify.frame_cycles, name, hz, "12-bit binary count");
+    }
+    char detail[48];
+    snprintf(detail, sizeof(detail), "%u bursts, %.2f MHz down to %.2f MHz", verify_frame::kBurstCount,
+             c.burst_hz[0] / 1e6, c.burst_hz[verify_frame::kBurstCount - 1] / 1e6);
+    add_row(verify_frame::kBurstPin, verify.pins[verify_frame::kBurstPin], verify.frame_cycles, "Frequency bursts",
+            sys_hz / static_cast<double>(verify.frame_cycles), detail);
+}
+
 }  // namespace
 
 void timeline_output_init(unsigned pio_index, unsigned sm, presets::Preset preset) {
@@ -204,6 +230,8 @@ void timeline_output_init(unsigned pio_index, unsigned sm, presets::Preset prese
         add_video_rows(sys_hz);
     } else if (preset == presets::Preset::kFaults) {
         add_faults_rows();
+    } else if (preset == presets::Preset::kVerify) {
+        add_verify_rows(sys_hz);
     } else {
         add_protocol_rows();
     }
