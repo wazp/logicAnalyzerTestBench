@@ -6,6 +6,7 @@ import { Rich } from '../components/Rich';
 import { SettingsCard } from '../components/SettingsCard';
 import { ThresholdDiagram } from '../components/ThresholdDiagram';
 import { ViewTabs } from '../components/ViewTabs';
+import { useProgress } from '../components/useProgress';
 import { Zoomable } from '../components/Zoomable';
 import { lessons, type FactTable, type Lesson, type Section } from '../lessons';
 import { signalColor, signalName } from '../model/board';
@@ -130,6 +131,19 @@ const trackLabel: Record<Lesson['track'], string> = {
   verify: 'Verify your analyzer',
 };
 
+function DoneToggle({ lesson }: { lesson: Lesson }) {
+  const [done, mark] = useProgress();
+  const isDone = done.has(lesson.id);
+  return (
+    <div class="done-toggle">
+      <button type="button" class={isDone ? 'button secondary' : 'button'} aria-pressed={isDone} onClick={() => mark(lesson.id, !isDone)}>
+        {isDone ? '✓ Done' : 'Mark as done'}
+      </button>
+      <span class="muted small">Saved in this browser only.</span>
+    </div>
+  );
+}
+
 function Pager({ lesson }: { lesson: Lesson }) {
   const i = lessons.indexOf(lesson);
   const prev = lessons[i - 1];
@@ -155,6 +169,11 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
             <h1>{lesson.title}</h1>
             <p class="lede">{lesson.summary}</p>
           </header>
+          {lesson.optional && (
+            <aside class="optional-banner">
+              <strong>Optional lesson.</strong> <Rich text={lesson.optional} />
+            </aside>
+          )}
           {usesTimeline && <PresetBanner preset={preset} />}
           <p>
             <Rich text={lesson.intro} />
@@ -237,6 +256,7 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
             </section>
           )}
   
+          <DoneToggle lesson={lesson} />
           <Pager lesson={lesson} />
         </article>
       </MysteryContext.Provider>

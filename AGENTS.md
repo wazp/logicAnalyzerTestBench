@@ -27,9 +27,11 @@ Conventions for anyone (human or AI agent) working on this repository. See [READ
 
 ## Web guide (web/)
 
-- Preact + TypeScript + Vite, built into one self-contained `index.html` (vite-plugin-singlefile) that the firmware embeds. Keep it small (currently about 60 KB gzipped) and fully offline: no CDN scripts, no web fonts, no external requests.
+- Preact + TypeScript + Vite, built into one self-contained `index.html` (vite-plugin-singlefile) that the firmware embeds. Keep it small (currently about 75 KB gzipped) and fully offline: no CDN scripts, no web fonts, no external requests.
 - Lessons are data, one file per lesson in `web/src/lessons/concepts/`, `basics/`, `protocols/`, `video/` or `verify/`, each exporting one `Lesson`. A lesson teaches with explanation `sections`, hands-on `parts` (captures with settings and expected waveforms), or both; one without parts wires no pins. Shared building blocks (wiring steps, example views, byte helpers) are in `web/src/lessons/helpers.ts`, the shapes in `types.ts`. `web/src/lessons/index.ts` lists the lessons in guide order; a new lesson is a new file plus one line there. Compute every number from the signal data; never type expected values by hand.
 - **Analyzer neutral.** The guide is for any logic analyzer and any software. Never name an app's menus or buttons, never number analyzer channels: refer to signals by Pico pin (`GP10`) and say "any free input". Describe settings in plain terms (sample rate, length, trigger edge on a pin, decoder parameters).
+- A lesson only some readers can follow (it needs a software feature not every analyzer app has, such as sigrok decoders) sets `optional` to a sentence saying who can skip it. The page and the lesson list mark it, and a test checks that no other lesson relies on it.
+- Readers can mark lessons as done (`web/src/model/progress.ts`). The marks live in the browser's localStorage only, guarded so the guide works without it.
 - A lesson with `mystery: true` hides what its pins carry (wiring, labels, trigger text) and shows no waveforms; its answers go in the questions, which are collapsed.
 - A lesson that wires GP10-GP22 names its `preset` (default `protocols`); it shows a switch banner when the board plays another one. The lesson tests check that it only wires pins its preset drives.
 - Every lesson must work on a small analyzer: at most 8 inputs and 24 MS/s per capture (`web/src/model/capture.ts`). The lesson tests enforce it.

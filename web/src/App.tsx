@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
-import { lessonById, lessons } from './lessons';
+import { useProgress } from './components/useProgress';
+import { lessonById, lessons, type Lesson } from './lessons';
 import { getStatus } from './model/device';
 import { HomePage } from './pages/HomePage';
 import { LessonPage } from './pages/LessonPage';
@@ -22,11 +23,20 @@ function useRoute(): string {
 }
 
 function Nav({ route, open }: { route: string; open: boolean }) {
-  const link = (href: string, label: string) => (
+  const [done] = useProgress();
+  const link = (href: string, label: string, lesson?: Lesson) => (
     <a href={`#${href}`} class={route === href ? 'active' : ''} aria-current={route === href ? 'page' : undefined}>
       {label}
+      {lesson?.optional && <span class="nav-tag">optional</span>}
+      {lesson && done.has(lesson.id) && (
+        <span class="nav-done" aria-label="done" title="Marked as done">
+          ✓
+        </span>
+      )}
     </a>
   );
+  const track = (t: Lesson['track']) =>
+    lessons.filter((l) => l.track === t).map((l) => link(`/lesson/${l.id}`, l.title, l));
   return (
     <nav id="sidebar" class={open ? 'sidebar open' : 'sidebar'}>
       <a class="brand" href="#/">
@@ -37,15 +47,15 @@ function Nav({ route, open }: { route: string; open: boolean }) {
       </a>
       {link('/', 'Start here')}
       <div class="nav-group">Concepts</div>
-      {lessons.filter((l) => l.track === 'concepts').map((l) => link(`/lesson/${l.id}`, l.title))}
+      {track('concepts')}
       <div class="nav-group">Learn</div>
-      {lessons.filter((l) => l.track === 'learn').map((l) => link(`/lesson/${l.id}`, l.title))}
+      {track('learn')}
       <div class="nav-group">Protocols</div>
-      {lessons.filter((l) => l.track === 'protocols').map((l) => link(`/lesson/${l.id}`, l.title))}
+      {track('protocols')}
       <div class="nav-group">Video and input</div>
-      {lessons.filter((l) => l.track === 'video').map((l) => link(`/lesson/${l.id}`, l.title))}
+      {track('video')}
       <div class="nav-group">Verify</div>
-      {lessons.filter((l) => l.track === 'verify').map((l) => link(`/lesson/${l.id}`, l.title))}
+      {track('verify')}
       <div class="nav-group">Settings</div>
       {link('/wifi', 'Wi-Fi')}
       {link('/preset', 'Signal preset')}

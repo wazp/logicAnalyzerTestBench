@@ -16,6 +16,16 @@ describe('lessons', () => {
     expect(ids.slice(0, 7)).toEqual(['uart', 'i2c', 'spi', 'ws2812', 'onewire', 'ir-remote', 'quadrature']);
   });
 
+  it('never rely on an optional lesson', () => {
+    for (const opt of lessons.filter((l) => l.optional)) {
+      for (const other of lessons.filter((l) => l !== opt)) {
+        const text = JSON.stringify(other);
+        expect(text).not.toContain(`lesson/${opt.id}`);
+        expect(text).not.toContain(opt.title);
+      }
+    }
+  });
+
   it('put every video preset lesson in the video track', () => {
     for (const l of lessons) expect(l.track === 'video').toBe(l.preset === 'video');
     expect(lessons.filter((l) => l.track === 'video').map((l) => l.id)).toEqual(['vga', 'nes-controller', 'ps2-keyboard']);

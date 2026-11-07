@@ -34,7 +34,7 @@ On the hotspot the guide runs on your phone, so it can sit next to the analyzer:
 |---|---|
 | Concepts | How a logic analyzer works, voltage levels and thresholds (3.3V, 5V, VREF), the words analyzers use, triggers, common gotchas, what a logic analyzer can't show you, memory depth and long captures |
 | Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers, checking whether a board is alive, switch bounce, identifying an unknown signal, timing between two signals, finding one event in a long recording |
-| Protocols | UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder, and what wrong decoder settings look like |
+| Protocols | UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder, what wrong decoder settings look like, and (optional) stacked sigrok decoders |
 | Video and input | VGA video timing, an NES controller, a PS/2 keyboard (with the Video and input preset) |
 | Verify | Sanity check of every analyzer input with a pass/fail checklist, clock accuracy in ppm |
 
@@ -340,7 +340,7 @@ npm --prefix web test
 
 ## Working on the web guide
 
-The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 60 KB gzipped).
+The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 75 KB gzipped).
 
 ```bash
 npm --prefix web ci
