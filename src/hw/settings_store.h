@@ -1,5 +1,5 @@
-// Saved Wi-Fi settings in the second-to-last 4 KB sector of flash (see
-// settings_store.cpp for why not the last one).
+// Saved settings (Wi-Fi network and signal preset) in the second-to-last 4 KB
+// sector of flash (see settings_store.cpp for why not the last one).
 //
 // The layout and validation live in src/core/settings.h. Writing erases the
 // sector, which stalls flash access for tens of milliseconds. The test signals
@@ -13,9 +13,9 @@
 // Panics with a clear message if it does.
 void settings_store_check_layout();
 
-// Returns false when nothing valid is stored (fresh board, forgotten network).
-bool settings_store_load(settings::WifiSettings& out);
+// Returns false and leaves `out` at the defaults (no network, default preset)
+// when nothing valid is stored, e.g. on a fresh board.
+bool settings_store_load(settings::Settings& out);
 
-// Both return false if the flash write could not be done safely.
-bool settings_store_save(const settings::WifiSettings& s);
-bool settings_store_erase();
+// Returns false if the flash write could not be done safely.
+bool settings_store_save(const settings::Settings& s);

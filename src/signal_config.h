@@ -191,6 +191,45 @@ struct ProtocolConfig {
 
 inline constexpr ProtocolConfig kProtocols{};
 
+// ---------------------------------------------------------------------------
+// "Video and input" preset on GP10-GP19 (see src/core/video_frame.h)
+// ---------------------------------------------------------------------------
+// A VGA picture with the inputs a retro computer or console reads: an NES
+// controller and a PS/2 keyboard. The timeline holds `frames` video frames
+// and repeats forever.
+struct VideoConfig {
+    // VGA 640x480 with negative sync pulses. One pixel is pixel_cycles clk_sys
+    // cycles: 150 MHz / 6 = 25 MHz, 0.7% below the standard 25.175 MHz, so
+    // lines come at 31.25 kHz and frames at 59.52 Hz, which monitors accept.
+    unsigned pixel_cycles = 6;
+    unsigned h_visible = 640;
+    unsigned h_front = 16;  // Front porch, sync pulse and back porch, in pixels.
+    unsigned h_sync = 96;
+    unsigned h_back = 48;
+    unsigned v_visible = 480;
+    unsigned v_front = 10;  // In lines.
+    unsigned v_sync = 2;
+    unsigned v_back = 33;
+    unsigned frames = 2;  // Exactly two: the keyboard presses the key in one and releases it in the other.
+
+    // NES controller (a 4021 shift register), read the way games do: once per
+    // video frame, at the start of vertical blanking. One byte per frame,
+    // bit 0 = A, then B, Select, Start, Up, Down, Left, Right; 1 = pressed.
+    uint8_t nes_buttons[2] = {0x81, 0x08};  // A + Right, then Start.
+    uint32_t nes_latch_us = 12;
+    uint32_t nes_clock_period_us = 12;  // 8 clock pulses, low for half of each.
+    uint32_t nes_first_clock_us = 6;    // From the end of the latch pulse.
+
+    // PS/2 keyboard: the key goes down in the first video frame and up in the
+    // second, in scan code set 2 (make code, then F0 + make code).
+    uint32_t ps2_clock_hz = 12500;  // Keyboards clock at 10 to 16.7 kHz.
+    uint8_t ps2_key = 0x1C;         // The A key.
+    uint32_t ps2_first_us = 3000;   // From the start of each video frame.
+    uint32_t ps2_byte_gap_us = 1000;  // Between the F0 and the make code.
+};
+
+inline constexpr VideoConfig kVideo{};
+
 // The timeline state machine: the free one next to the pattern.
 constexpr unsigned kTimelinePioIndex = 1;
 constexpr unsigned kTimelineSm = 3;

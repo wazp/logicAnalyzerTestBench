@@ -1,5 +1,7 @@
+import { useContext } from 'preact/hooks';
 import { shortLabel, signalColor } from '../model/board';
 import { headerPins, groundPins, type HeaderPin } from '../model/pico';
+import { MysteryContext, PresetContext } from './PresetContext';
 
 // Top view of the Pico 2 W: pins 1-20 down the left edge, 21-40 up the right.
 const ROW = 17;
@@ -16,6 +18,8 @@ function position(pin: number): { x: number; y: number; left: boolean } {
 
 /** The Pico header with the pins used by a lesson highlighted and labeled with their signal. */
 export function PinDiagram({ gpios }: { gpios: number[] }) {
+  const preset = useContext(PresetContext);
+  const mystery = useContext(MysteryContext);
   const used = new Set(gpios);
   const pinClass = (p: HeaderPin) => {
     if (p.gpio !== undefined && used.has(p.gpio)) return 'pin used';
@@ -61,7 +65,7 @@ export function PinDiagram({ gpios }: { gpios: number[] }) {
                   style={{ fill: color }}
                 />
                 <text class="ch-badge-text" x={left ? labelX - 74 : labelX + 74} y={y + 4} text-anchor="middle">
-                  {shortLabel(p.gpio!)}
+                  {mystery ? '?' : shortLabel(p.gpio!, preset)}
                 </text>
               </g>
             )}

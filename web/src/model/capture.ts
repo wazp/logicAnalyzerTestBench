@@ -7,6 +7,7 @@
 
 import { shortLabel } from './board';
 import { formatRate, formatTime } from './format';
+import { defaultPreset, type PresetId } from './presets';
 
 export const minimumAnalyzer = {
   inputs: 8,
@@ -14,6 +15,8 @@ export const minimumAnalyzer = {
 };
 
 export type Trigger =
+  /** No trigger: record from the moment the capture starts. */
+  | { type: 'none' }
   | { type: 'edge'; gpio: number; edge: 'rising' | 'falling' }
   /** All listed pins at the given levels at the same time ("pattern" or "condition" trigger). */
   | { type: 'pattern'; levels: { gpio: number; level: 0 | 1 }[] }
@@ -60,7 +63,7 @@ export function validateSettings(s: CaptureSettings): string[] {
   }
   if (s.durationNs <= 0 || s.preTriggerNs < 0) issues.push('Capture length must be positive.');
   const t = s.trigger;
-  const triggerPins = t.type === 'pattern' ? t.levels.map((l) => l.gpio) : [t.gpio];
+  const triggerPins = t.type === 'none' ? [] : t.type === 'pattern' ? t.levels.map((l) => l.gpio) : [t.gpio];
   if (t.type === 'pulse' && t.longerThanNs === undefined && t.shorterThanNs === undefined) {
     issues.push('A pulse width trigger needs a minimum or maximum width.');
   }
@@ -70,10 +73,15 @@ export function validateSettings(s: CaptureSettings): string[] {
   return issues;
 }
 
-/** The trigger in plain words. */
-export function describeTrigger(t: Trigger): string {
+/**
+ * The trigger in plain words. GP10-GP22 are named as in `preset`; `named` false leaves out what the pin
+ * carries, for lessons where finding that out is the exercise.
+ */
+export function describeTrigger(t: Trigger, preset: PresetId = defaultPreset, named = true): string {
+  if (t.type === 'none') return 'None: record from the moment you start';
   if (t.type === 'edge') {
-    return `${t.edge === 'rising' ? 'Rising' : 'Falling'} edge on GP${t.gpio} (${shortLabel(t.gpio)})`;
+    const edge = `${t.edge === 'rising' ? 'Rising' : 'Falling'} edge on GP${t.gpio}`;
+    return named ? `${edge} (${shortLabel(t.gpio, preset)})` : edge;
   }
   if (t.type === 'pulse') {
     const limits = [

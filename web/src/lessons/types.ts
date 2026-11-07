@@ -4,6 +4,7 @@
 
 import type { Row } from '../components/Waveform';
 import type { CaptureSettings } from '../model/capture';
+import type { PresetId } from '../model/presets';
 
 /** A waveform view: a time window around the trigger, optionally sampled like an analyzer would. */
 export interface View {
@@ -62,7 +63,11 @@ export interface Section {
 
 export interface Lesson {
   id: string;
-  track: 'concepts' | 'learn' | 'protocols' | 'verify';
+  track: 'concepts' | 'learn' | 'protocols' | 'video' | 'verify';
+  /** The signal preset GP10-GP22 must play. Omitted: the default, protocols. */
+  preset?: PresetId;
+  /** Finding out what the pins carry is the exercise: the page hides their names, and parts show no waveforms. */
+  mystery?: boolean;
   title: string;
   summary: string;
   /** Pico pins to wire up, each to any free analyzer input. Empty for a reading-only lesson. */

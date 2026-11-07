@@ -47,7 +47,7 @@ bool wifi_request_scan();  // false if a scan is already running.
 bool wifi_scan_running();
 const scan::List& wifi_scan_results();
 void wifi_request_save(const settings::WifiSettings& s);  // Saves, then reboots.
-void wifi_request_forget();                               // Erases, then reboots.
+void wifi_request_forget();  // Clears the saved network (keeps the preset), then reboots.
 
 // --- Direct actions (main loop only) ----------------------------------------
 

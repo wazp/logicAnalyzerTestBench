@@ -3,6 +3,7 @@ import { lessonById, lessons } from './lessons';
 import { getStatus } from './model/device';
 import { HomePage } from './pages/HomePage';
 import { LessonPage } from './pages/LessonPage';
+import { PresetPage } from './pages/PresetPage';
 import { WifiPage } from './pages/WifiPage';
 
 // Hash routing (#/lesson/<id>) keeps this a single static file that works
@@ -41,10 +42,13 @@ function Nav({ route, open }: { route: string; open: boolean }) {
       {lessons.filter((l) => l.track === 'learn').map((l) => link(`/lesson/${l.id}`, l.title))}
       <div class="nav-group">Protocols</div>
       {lessons.filter((l) => l.track === 'protocols').map((l) => link(`/lesson/${l.id}`, l.title))}
+      <div class="nav-group">Video and input</div>
+      {lessons.filter((l) => l.track === 'video').map((l) => link(`/lesson/${l.id}`, l.title))}
       <div class="nav-group">Verify</div>
       {lessons.filter((l) => l.track === 'verify').map((l) => link(`/lesson/${l.id}`, l.title))}
       <div class="nav-group">Settings</div>
       {link('/wifi', 'Wi-Fi')}
+      {link('/preset', 'Signal preset')}
     </nav>
   );
 }
@@ -125,7 +129,17 @@ export function App() {
       </header>
       <div class={drawerOpen ? 'backdrop open' : 'backdrop'} onClick={() => setDrawerOpen(false)} />
       <Nav route={route} open={drawerOpen} />
-      <main>{lesson ? <LessonPage lesson={lesson} /> : route === '/wifi' ? <WifiPage /> : <HomePage />}</main>
+      <main>
+        {lesson ? (
+          <LessonPage lesson={lesson} />
+        ) : route === '/wifi' ? (
+          <WifiPage />
+        ) : route === '/preset' ? (
+          <PresetPage />
+        ) : (
+          <HomePage />
+        )}
+      </main>
     </div>
   );
 }

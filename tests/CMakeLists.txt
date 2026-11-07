@@ -17,6 +17,7 @@ add_executable(timing_tests
     test_net.cpp
     test_timeline.cpp
     test_protocols.cpp
+    test_video.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/timing.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/timeline.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocol_frame.cpp
@@ -27,6 +28,10 @@ add_executable(timing_tests
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/onewire.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/nec.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/quadrature.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/video_frame.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/vga.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/nes.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/ps2.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/http_request.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/settings.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/scan_list.cpp
@@ -74,3 +79,22 @@ add_test(NAME protocols_json_export COMMAND export_protocols ${CMAKE_CURRENT_BIN
 add_test(NAME protocols_json_up_to_date
     COMMAND ${CMAKE_COMMAND} -E compare_files ${CMAKE_CURRENT_BINARY_DIR}/protocols.json ${PROTOCOLS_JSON})
 set_tests_properties(protocols_json_up_to_date PROPERTIES DEPENDS protocols_json_export)
+
+# Exports the "Video and input" preset for the web guide's video lessons. Fix
+# a stale file with
+#   ./build-tests/export_video web/src/data/video.json
+add_executable(export_video
+    ${CMAKE_CURRENT_LIST_DIR}/../tools/export_video.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/video_frame.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/vga.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/nes.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/ps2.cpp
+)
+target_include_directories(export_video PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src)
+target_compile_options(export_video PRIVATE -Wall -Wextra -Werror)
+
+set(VIDEO_JSON ${CMAKE_CURRENT_LIST_DIR}/../web/src/data/video.json)
+add_test(NAME video_json_export COMMAND export_video ${CMAKE_CURRENT_BINARY_DIR}/video.json)
+add_test(NAME video_json_up_to_date
+    COMMAND ${CMAKE_COMMAND} -E compare_files ${CMAKE_CURRENT_BINARY_DIR}/video.json ${VIDEO_JSON})
+set_tests_properties(video_json_up_to_date PROPERTIES DEPENDS video_json_export)

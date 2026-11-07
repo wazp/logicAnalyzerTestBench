@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { signalName } from '../model/board';
 import { captureWindow, minimumAnalyzer, validateSettings } from '../model/capture';
+import { presetPins } from '../model/presets';
 import { waveLevelAt } from '../model/wave';
 import { lessons } from './index';
 
@@ -12,6 +14,11 @@ describe('lessons', () => {
   it('cover every protocol', () => {
     const ids = lessons.filter((l) => l.track === 'protocols').map((l) => l.id);
     expect(ids).toEqual(['uart', 'i2c', 'spi', 'ws2812', 'onewire', 'ir-remote', 'quadrature']);
+  });
+
+  it('put every video preset lesson in the video track', () => {
+    for (const l of lessons) expect(l.track === 'video').toBe(l.preset === 'video');
+    expect(lessons.filter((l) => l.track === 'video').map((l) => l.id)).toEqual(['vga', 'nes-controller', 'ps2-keyboard']);
   });
 
   it('start with the concepts track', () => {
@@ -29,8 +36,21 @@ describe('lessons', () => {
         else expect(lesson.gpios.length).toBeGreaterThan(0);
       });
 
+      it('only wires pins its preset drives', () => {
+        const preset = lesson.preset ?? 'protocols';
+        const timeline = presetPins(preset).map((p) => p.gpio);
+        for (const g of lesson.gpios) {
+          if (g >= 10 && g <= 22) expect(timeline).toContain(g);
+          expect(() => signalName(g, preset)).not.toThrow();
+        }
+      });
+
       it('never needs more inputs than a small analyzer has', () => {
         for (const part of lesson.parts) expect(part.settings.gpios.length).toBeLessThanOrEqual(minimumAnalyzer.inputs);
+      });
+
+      it('shows no waveforms when the pins are a mystery', () => {
+        if (lesson.mystery) for (const part of lesson.parts) expect(part.views).toEqual([]);
       });
 
       it('never mentions analyzer channel numbers', () => {

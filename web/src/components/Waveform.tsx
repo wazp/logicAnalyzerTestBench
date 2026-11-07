@@ -2,6 +2,7 @@ import { useContext, useEffect, useRef, useState } from 'preact/hooks';
 import { shortLabel, signalColor } from '../model/board';
 import { formatRate, formatTime } from '../model/format';
 import { idealWaveTrace, sampledWaveTrace, waveLevelAt, type Trace, type Wave } from '../model/wave';
+import { PresetContext } from './PresetContext';
 import { ZoomedContext } from './Zoomable';
 
 const LABEL_W = 92;
@@ -61,6 +62,7 @@ interface Props {
  */
 export function Waveform({ rows, startNs, endNs, sampleRateHz }: Props) {
   const [ref, measured] = useWidth<HTMLDivElement>(760);
+  const preset = useContext(PresetContext);
   // Zoomed, the drawing is laid out at a smaller logical width and scaled up by
   // the viewBox, but never below MIN_W logical pixels (it would scroll instead).
   const zoom = useContext(ZoomedContext) ? Math.max(1, Math.min(MAX_ZOOM, measured / MIN_W)) : 1;
@@ -120,7 +122,7 @@ export function Waveform({ rows, startNs, endNs, sampleRateHz }: Props) {
                   GP{gpio}
                 </text>
                 <text class="row-sub" x={44} y={yTop + TRACE_H / 2 + 4}>
-                  {shortLabel(gpio)}
+                  {shortLabel(gpio, preset)}
                 </text>
                 {trace.dense ? (
                   <g>

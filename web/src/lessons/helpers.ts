@@ -3,7 +3,8 @@
 // Lessons themselves live one per file in basics/, protocols/ and verify/.
 
 import type { Row } from '../components/Waveform';
-import { example, exampleWave, firstEdgeNs, hexByte, type ProtocolId } from '../model/protocols';
+import { example, exampleWave, firstEdgeNs, hexByte, type Example, type ProtocolId } from '../model/protocols';
+import type { EdgeWave, Level } from '../model/wave';
 import { periodNs, segmentTimeline, signalByGpio } from '../model/signals';
 import type { View } from './types';
 
@@ -35,6 +36,10 @@ export const wireSteps = (gpios: number[]) => [
   `Connect ${pinList(gpios)} to free analyzer inputs. Any inputs will do; note which one got which pin.`,
 ];
 
+/** For captures whose events are further apart than many programs show on one screen. */
+export const scrollStep =
+  'If your software shows only part of a long capture at once, scroll from one event to the next, or place markers on them to measure the time between.';
+
 export const protocolWarning =
   'These pins drive their lines like a real device would look on an analyzer, but they are push-pull outputs. Never connect them to a real bus, sensor or LED strip.';
 
@@ -50,12 +55,43 @@ export function exampleView(
   protocol: ProtocolId,
   label: string,
   trigger: { gpio: number; edge: 'rising' | 'falling' },
-  view: { title: string; sampleRateHz?: number; caption: string },
+  view: { title: string; sampleRateHz?: number; sampleRateOptions?: number[]; caption: string },
 ): View {
-  const e = example(protocol, label);
+  return exampleViewOf(example(protocol, label), trigger, view);
+}
+
+/** Same as exampleView, for any exported example (protocols.json or video.json). */
+export function exampleViewOf(
+  e: Example,
+  trigger: { gpio: number; edge: 'rising' | 'falling' },
+  view: { title: string; sampleRateHz?: number; sampleRateOptions?: number[]; caption: string },
+): View {
   const zero = firstEdgeNs(e, trigger.gpio, trigger.edge);
   const rows: Row[] = e.traces.map((t) => ({ gpio: t.gpio, wave: exampleWave(e, t.gpio, zero) }));
   return { ...view, startNs: -zero, endNs: e.durationNs - zero, rows };
+}
+
+/**
+ * Examples of the same pins laid end to end: each example's first `edge` on
+ * `gpio` is placed at its `atNs`. For captures longer than one example, e.g.
+ * two transactions a video frame apart. The pins must idle at the same levels
+ * between the examples.
+ */
+export function placedRows(
+  placements: { e: Example; atNs: number }[],
+  trigger: { gpio: number; edge: 'rising' | 'falling' },
+): Row[] {
+  const first = placements[0].e;
+  return first.traces.map((t) => {
+    const togglesNs: number[] = [];
+    for (const { e, atNs } of placements) {
+      const zero = firstEdgeNs(e, trigger.gpio, trigger.edge);
+      const tr = e.traces.find((x) => x.gpio === t.gpio)!;
+      togglesNs.push(...tr.togglesNs.map((x) => x - zero + atNs));
+    }
+    const wave: EdgeWave = { kind: 'edges', initial: t.initial as Level, togglesNs };
+    return { gpio: t.gpio, wave };
+  });
 }
 
 /** "a, b and c" */

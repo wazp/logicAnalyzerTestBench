@@ -21,10 +21,13 @@ constexpr unsigned kPwm75 = 7;    // PWM slice 3, channel B
 constexpr unsigned kPulse = 8;    // PWM slice 4, channel A
 constexpr unsigned kPattern = 9;  // PIO (slice 4 channel B is left unused)
 
-// Protocol signals, GP10-GP22, all played by one PIO state machine from a
+// Timeline pins, GP10-GP22, all played by one PIO state machine from a
 // precomputed timeline (src/hw/timeline_output.cpp). They must stay one
 // contiguous block in this order: the PIO writes them as one 13-bit word.
+// What they carry depends on the signal preset (src/core/presets.h).
 constexpr unsigned kTimelineBase = 10;
+
+// "Protocols" preset (the default).
 constexpr unsigned kUartTx = 10;
 constexpr unsigned kUartRx = 11;  // The simulated device's reply.
 constexpr unsigned kI2cScl = 12;
@@ -39,6 +42,18 @@ constexpr unsigned kIrRemote = 20;
 constexpr unsigned kQuadratureA = 21;
 constexpr unsigned kQuadratureB = 22;
 constexpr unsigned kTimelinePinCount = 13;
+
+// "Video and input" preset. GP20-GP22 are held low in this preset.
+constexpr unsigned kVgaHsync = 10;
+constexpr unsigned kVgaVsync = 11;
+constexpr unsigned kVgaRed = 12;
+constexpr unsigned kVgaGreen = 13;
+constexpr unsigned kVgaBlue = 14;
+constexpr unsigned kNesLatch = 15;
+constexpr unsigned kNesClock = 16;
+constexpr unsigned kNesData = 17;  // The simulated controller's answer.
+constexpr unsigned kPs2Clock = 18;
+constexpr unsigned kPs2Data = 19;
 
 // A push button that bounces, played by PIO2 like the GP9 pattern. GP27 and
 // GP28 are still free.
@@ -84,6 +99,12 @@ constexpr bool timeline_overlaps_reserved() {
     }
     return false;
 }
+static_assert(kVgaHsync == kTimelineBase && kVgaVsync == kTimelineBase + 1 && kVgaRed == kTimelineBase + 2 &&
+                  kVgaGreen == kTimelineBase + 3 && kVgaBlue == kTimelineBase + 4 &&
+                  kNesLatch == kTimelineBase + 5 && kNesClock == kTimelineBase + 6 &&
+                  kNesData == kTimelineBase + 7 && kPs2Clock == kTimelineBase + 8 && kPs2Data == kTimelineBase + 9,
+              "video preset pins must follow the timeline order in src/core/video_frame.h");
+
 static_assert(!timeline_overlaps_reserved(), "a protocol pin collides with a pin reserved for the CYW43 chip");
 static_assert(kTimelineBase > kPattern, "protocol pins must not overlap the basic signals");
 static_assert(kBounce >= kTimelineBase + kTimelinePinCount, "the bounce pin must not overlap the protocol pins");

@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { getStatus, joinErrorText, saveWifi, scanNetworks, signalBars, validateWifi, type DeviceStatus } from './device';
+import {
+  activePreset,
+  getStatus,
+  joinErrorText,
+  saveWifi,
+  scanNetworks,
+  setPreset,
+  signalBars,
+  validateWifi,
+  waitForPreset,
+  type DeviceStatus,
+} from './device';
 
 const status: DeviceStatus = {
   mode: 'setup',
@@ -89,5 +100,33 @@ describe('wording and signal', () => {
     expect(signalBars(-60)).toBe(3);
     expect(signalBars(-73)).toBe(2);
     expect(signalBars(-89)).toBe(0);
+  });
+});
+
+describe('presets', () => {
+  it('reads the active preset, defaulting for firmware without presets', () => {
+    expect(activePreset({ preset: 'video' })).toBe('video');
+    expect(activePreset({})).toBe('protocols');
+  });
+
+  it('posts the preset as a form field', async () => {
+    let sent = '';
+    const fetcher = (async (_url: string, init?: RequestInit) => {
+      sent = String(init?.body);
+      return json({ ok: true, preset: 'video', restarting: true });
+    }) as typeof fetch;
+    expect(await setPreset('video', fetcher)).toEqual({ ok: true, preset: 'video', restarting: true });
+    expect(sent).toBe('preset=video');
+  });
+
+  it('waits through the restart until the board reports the new preset', async () => {
+    let polls = 0;
+    const fetcher = (async () => {
+      polls++;
+      if (polls < 3) throw new TypeError('Failed to fetch');
+      return json({ ...status, preset: polls < 4 ? 'protocols' : 'video' });
+    }) as typeof fetch;
+    expect(await waitForPreset('video', fetcher, 0, 10)).toBe(true);
+    expect(polls).toBe(4);
   });
 });

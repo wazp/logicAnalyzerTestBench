@@ -1,4 +1,5 @@
 import { Fragment } from 'preact';
+import { useContext } from 'preact/hooks';
 import { shortLabel } from '../model/board';
 import {
   captureWindow,
@@ -9,9 +10,12 @@ import {
   type CaptureSettings,
 } from '../model/capture';
 import { formatCount, formatPercent, formatRate, formatTime } from '../model/format';
+import { MysteryContext, PresetContext } from './PresetContext';
 
 /** What to set up in the analyzer software, plus what it adds up to. */
 export function SettingsCard({ settings }: { settings: CaptureSettings }) {
+  const preset = useContext(PresetContext);
+  const mystery = useContext(MysteryContext);
   const w = captureWindow(settings);
   const issues = validateSettings(settings);
   // Apps set the length as a time, a sample count or (for the pre-trigger part) a percentage,
@@ -29,7 +33,8 @@ export function SettingsCard({ settings }: { settings: CaptureSettings }) {
             <Fragment key={g}>
               {i > 0 && ', '}
               <span class="nowrap">
-                GP{g} <span class="muted">({shortLabel(g)})</span>
+                GP{g}
+                {!mystery && <span class="muted"> ({shortLabel(g, preset)})</span>}
               </span>
             </Fragment>
           ))}
@@ -41,7 +46,8 @@ export function SettingsCard({ settings }: { settings: CaptureSettings }) {
         </dd>
         <dt>Length</dt>
         <dd>
-          {formatTime(w.postNs)} after the trigger <span class="muted">({samples(w.postNs)})</span>
+          {formatTime(w.postNs)}
+          {settings.trigger.type !== 'none' && ' after the trigger'} <span class="muted">({samples(w.postNs)})</span>
           {w.preNs > 0 && (
             <span class="muted">
               , {formatTime(w.preNs)} before if your analyzer keeps it ({samples(w.preNs)})
@@ -49,7 +55,7 @@ export function SettingsCard({ settings }: { settings: CaptureSettings }) {
           )}
         </dd>
         <dt>Trigger</dt>
-        <dd>{describeTrigger(settings.trigger)}</dd>
+        <dd>{describeTrigger(settings.trigger, preset, !mystery)}</dd>
         {settings.decoder && (
           <>
             <dt>Decoder</dt>

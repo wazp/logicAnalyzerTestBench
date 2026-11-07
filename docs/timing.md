@@ -92,6 +92,22 @@ Program: [src/hw/timeline.pio](../src/hw/timeline.pio). One state machine (PIO1 
 
 Recommended sample rates for every protocol are in its lesson. All of them stay at or below 24 MS/s.
 
+## Video and input preset (GP10 to GP19): the same timeline
+
+The other [signal preset](../README.md#signal-presets) plays a different frame on the same state machine, built by [src/core/video_frame.cpp](../src/core/video_frame.cpp). The preset is read from flash at boot, before the signals start; switching saves it and restarts the board, so every signal starts in sync again.
+
+- **Frame:** two VGA frames, 33.6 ms (5,040,000 cycles), about 9,900 timeline words. The two presets share the RAM for building their frames.
+- **VGA:** one pixel is 6 cycles, so the pixel clock is 25 MHz (the standard is 25.175 MHz, 0.7% faster). Lines are 800 pixels, 32 µs (31.25 kHz); frames are 525 lines, 16.8 ms (59.52 Hz). Both sync pulses are active low: HSYNC 96 pixels (3.84 µs) after a 16 pixel front porch, VSYNC 2 lines (64 µs) after a 10 line front porch. Every edge is exact.
+- **On the pixel grid:** NES and PS/2 edges are rounded to whole pixels (40 ns), so they either coincide with a video edge or are at least 6 cycles from one, and the timeline never has to move a video edge. With 150 MHz every NES and PS/2 time is already a whole number of pixels.
+
+| Signal | Timing | Precision |
+|---|---|---|
+| VGA HSYNC, VSYNC, R, G, B | 25 MHz pixels, 640x480 | exact (whole pixels) |
+| NES latch, clock, data | 12 µs latch, 12 µs clock period, read in line 480 of each frame | exact |
+| PS/2 clock, data | 12.5 kHz (80 µs per bit), data changes 20 µs before each falling clock edge | exact |
+
+GP20 to GP22 are held low in this preset.
+
 ## Start alignment
 
 All signal state machines (PIO0, PIO1 and PIO2 SM0) are enabled on the same clock cycle: `pio_enable_sm_multi_mask_in_sync` on PIO1 also enables its neighbors PIO0 and PIO2 in the same register write. So the square waves, both patterns and the protocol frame share t = 0. The two PWM slices start together right after that, from the next store instruction. Both writes run from RAM with interrupts off (`start_signals` in `src/main.cpp`), so PWM edges trail PIO edges by a few cycles. Measured on a board at 100 MS/s: GP8 rises 2 to 3 samples (20-30 ns) after GP3, under one sample at 24 MS/s and visible only at very high sample rates. Run from flash, an XIP cache miss between the two writes once put them about 3 us apart.
@@ -108,6 +124,9 @@ Rule of thumb: sample at least 4 times faster than the fastest signal you look a
 | GP8 1 us pulse | 4 MS/s | 16 MS/s or more |
 | GP9 1 us segments | 4 MS/s | 16 MS/s or more |
 | GP26 bounce, 2 us spikes | 1 MS/s | 4 MS/s or more |
+| VGA line (HSYNC, colors) | 4 MS/s | 12 MS/s or more |
+| VGA frame (VSYNC with HSYNC) | 1 MS/s | 2 MS/s or more |
+| NES controller, PS/2 keyboard | 1 MS/s | 4 MS/s |
 
 To see the full 1 Hz period on GP0 you need a capture at least 1 s long, so combine a long capture with a moderate sample rate, or use the analyzer's compressed/streaming mode if it has one.
 
@@ -117,5 +136,5 @@ A common exercise: capture GP5 (100 kHz) at 200 kS/s and watch it alias. Then ra
 
 - **5V systems (C64):** The Commodore 64 bus is 5V TTL. 3.3V outputs are usually read as high by TTL inputs (threshold about 2.0V), but anything driving back into the Pico must be level shifted. Plan for level shifters before connecting to real hardware.
 - **RP2350 erratum E9:** GPIO inputs with the internal pull-down enabled can latch high. It does not affect outputs, but matters once inputs are added (for example clock inputs or bus snooping). Use external pull-downs if needed.
-- **PIO capacity:** PIO0 and PIO1 are full (4 state machines each; PIO1 SM3 plays the protocol timeline). PIO2 SM0 plays the GP26 button. The CYW43 Wi-Fi driver takes the first PIO with a free state machine, which is therefore PIO2 (SM1, 7 instructions). PIO2 has two state machines left after that.
-- **More protocols** don't need more state machines: add an encoder in `src/core/protocols/` and a slot in the protocol frame. They do need pins, though, and all 13 timeline pins are taken; the timeline cannot grow past GP22 because GP23 to GP25 belong to the Wi-Fi chip. Only signals that must run independently of the 120 ms frame (for example VGA video) need their own state machine or a preset that replaces the frame.
+- **PIO capacity:** PIO0 and PIO1 are full (4 state machines each; PIO1 SM3 plays the timeline of the active preset). PIO2 SM0 plays the GP26 button. The CYW43 Wi-Fi driver takes the first PIO with a free state machine, which is therefore PIO2 (SM1, 7 instructions). PIO2 has two state machines left after that.
+- **More protocols** don't need more state machines: add an encoder in `src/core/protocols/` and a slot in the protocol frame. They do need pins, though, and all 13 timeline pins are taken in the Protocols preset; the timeline cannot grow past GP22 because GP23 to GP25 belong to the Wi-Fi chip. Signals that cannot share a frame get a preset of their own, a new frame builder for the same state machine, as the Video and input preset does. That preset still has GP20 to GP22 free.
