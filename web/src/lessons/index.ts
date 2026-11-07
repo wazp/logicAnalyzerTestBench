@@ -29,6 +29,7 @@ import { spi } from './protocols/spi';
 import { uart } from './protocols/uart';
 import { ws2812 } from './protocols/ws2812';
 import type { Lesson } from './types';
+import { clockAccuracy } from './verify/clock-accuracy';
 import { sanityCheck } from './verify/sanity-check';
 import { nesController } from './video/nes';
 import { ps2Keyboard } from './video/ps2';
@@ -68,6 +69,7 @@ export const lessons: Lesson[] = [
   ps2Keyboard,
   // Verify your analyzer.
   sanityCheck,
+  clockAccuracy,
 ];
 
 export function lessonById(id: string): Lesson | undefined {
