@@ -66,6 +66,8 @@ export interface Lesson {
   track: 'concepts' | 'learn' | 'protocols' | 'video' | 'verify';
   /** The signal preset GP10-GP22 must play. Omitted: the default, protocols. */
   preset?: PresetId;
+  /** Finding out what the pins carry is the exercise: the page hides their names, and parts show no waveforms. */
+  mystery?: boolean;
   title: string;
   summary: string;
   /** Pico pins to wire up, each to any free analyzer input. Empty for a reading-only lesson. */

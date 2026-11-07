@@ -34,6 +34,11 @@ describe('capture model', () => {
     ).toHaveLength(1);
   });
 
+  it('accepts recording without a trigger', () => {
+    expect(validateSettings({ ...base, trigger: { type: 'none' } })).toEqual([]);
+    expect(describeTrigger({ type: 'none' })).toBe('None: record from the moment you start');
+  });
+
   it('needs a width for pulse triggers', () => {
     expect(validateSettings({ ...base, trigger: { type: 'pulse', gpio: 0, level: 1 } })).toHaveLength(1);
     expect(validateSettings({ ...base, trigger: { type: 'pulse', gpio: 0, level: 1, longerThanNs: 8e3 } })).toEqual([]);
@@ -44,6 +49,7 @@ describe('capture model', () => {
       'GP9 high pulse longer than 8 µs and shorter than 15 µs',
     );
     expect(describeTrigger({ type: 'edge', gpio: 17, edge: 'falling' })).toBe('Falling edge on GP17 (CS)');
+    expect(describeTrigger({ type: 'edge', gpio: 17, edge: 'falling' }, 'protocols', false)).toBe('Falling edge on GP17');
     expect(describeTrigger({ type: 'pattern', levels: [{ gpio: 8, level: 1 }, { gpio: 9, level: 0 }] })).toBe(
       'GP8 high and GP9 low',
     );

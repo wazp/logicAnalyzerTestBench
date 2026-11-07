@@ -49,6 +49,10 @@ describe('lessons', () => {
         for (const part of lesson.parts) expect(part.settings.gpios.length).toBeLessThanOrEqual(minimumAnalyzer.inputs);
       });
 
+      it('shows no waveforms when the pins are a mystery', () => {
+        if (lesson.mystery) for (const part of lesson.parts) expect(part.views).toEqual([]);
+      });
+
       it('never mentions analyzer channel numbers', () => {
         const text = JSON.stringify(lesson);
         expect(text).not.toMatch(/\bCH\d/);

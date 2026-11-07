@@ -1,6 +1,6 @@
 import { Checklist } from '../components/Checklist';
 import { PresetBanner } from '../components/PresetBanner';
-import { PresetContext } from '../components/PresetContext';
+import { MysteryContext, PresetContext } from '../components/PresetContext';
 import { PinDiagram } from '../components/PinDiagram';
 import { Rich } from '../components/Rich';
 import { SettingsCard } from '../components/SettingsCard';
@@ -12,7 +12,7 @@ import { signalColor, signalName } from '../model/board';
 import { defaultPreset, type PresetId } from '../model/presets';
 import { physicalPinForGpio } from '../model/pico';
 
-function WiringTable({ gpios, preset }: { gpios: number[]; preset: PresetId }) {
+function WiringTable({ gpios, preset, mystery }: { gpios: number[]; preset: PresetId; mystery: boolean }) {
   return (
     <div class="table-scroll">
       <table class="wiring">
@@ -35,7 +35,7 @@ function WiringTable({ gpios, preset }: { gpios: number[]; preset: PresetId }) {
                 <span class="ch-dot" style={{ background: signalColor(g) }} />
                 GP{g}, pin {physicalPinForGpio(g)}
               </td>
-              <td>{signalName(g, preset)}</td>
+              <td>{mystery ? <span class="muted">unknown: find out</span> : signalName(g, preset)}</td>
               <td class="muted">any free input</td>
             </tr>
           ))}
@@ -144,95 +144,102 @@ function Pager({ lesson }: { lesson: Lesson }) {
 
 export function LessonPage({ lesson }: { lesson: Lesson }) {
   const preset = lesson.preset ?? defaultPreset;
+  const mystery = lesson.mystery ?? false;
   const usesTimeline = lesson.gpios.some((g) => g >= 10 && g <= 22);
   return (
     <PresetContext.Provider value={preset}>
-      <article class="lesson">
-        <header>
-          <div class="eyebrow">{trackLabel[lesson.track]}</div>
-          <h1>{lesson.title}</h1>
-          <p class="lede">{lesson.summary}</p>
-        </header>
-        {usesTimeline && <PresetBanner preset={preset} />}
-        <p>
-          <Rich text={lesson.intro} />
-        </p>
-
-        {lesson.sections?.map((sec) => <ConceptSection key={sec.title} section={sec} />)}
-
-        {lesson.gpios.length > 0 && (
-          <section class="wiring-section">
-            <h2>Wiring</h2>
-            <div class="wiring-grid">
-              <Zoomable title="Wiring">
-                <PinDiagram gpios={lesson.gpios} />
-              </Zoomable>
-              <WiringTable gpios={lesson.gpios} preset={preset} />
-            </div>
-          </section>
-        )}
-
-        {lesson.parts.map((part) => (
-          <section key={part.title} class="part">
-            <h2>{part.title}</h2>
-            {part.intro && (
-              <p>
-                <Rich text={part.intro} />
-              </p>
-            )}
-            <div class="part-grid">
-              <ol class="steps">
-                {part.steps.map((s) => (
-                  <li key={s}>
-                    <Rich text={s} />
+      <MysteryContext.Provider value={mystery}>
+        <article class="lesson">
+          <header>
+            <div class="eyebrow">{trackLabel[lesson.track]}</div>
+            <h1>{lesson.title}</h1>
+            <p class="lede">{lesson.summary}</p>
+          </header>
+          {usesTimeline && <PresetBanner preset={preset} />}
+          <p>
+            <Rich text={lesson.intro} />
+          </p>
+  
+          {lesson.sections?.map((sec) => <ConceptSection key={sec.title} section={sec} />)}
+  
+          {lesson.gpios.length > 0 && (
+            <section class="wiring-section">
+              <h2>Wiring</h2>
+              <div class="wiring-grid">
+                <Zoomable title="Wiring">
+                  <PinDiagram gpios={lesson.gpios} />
+                </Zoomable>
+                <WiringTable gpios={lesson.gpios} preset={preset} mystery={mystery} />
+              </div>
+            </section>
+          )}
+  
+          {lesson.parts.map((part) => (
+            <section key={part.title} class="part">
+              <h2>{part.title}</h2>
+              {part.intro && (
+                <p>
+                  <Rich text={part.intro} />
+                </p>
+              )}
+              <div class="part-grid">
+                <ol class="steps">
+                  {part.steps.map((s) => (
+                    <li key={s}>
+                      <Rich text={s} />
+                    </li>
+                  ))}
+                </ol>
+                <SettingsCard settings={part.settings} />
+              </div>
+              {part.views.length > 0 && (
+                <>
+                  <h3>What you should see</h3>
+                  <ViewTabs key={part.title} gpios={part.settings.gpios} views={part.views} />
+                </>
+              )}
+            </section>
+          ))}
+  
+          {lesson.tables?.map((t) => <Table key={t.title} table={t} />)}
+  
+          {lesson.checks && (
+            <section>
+              <h2>Checklist</h2>
+              <Checklist lessonId={lesson.id} checks={lesson.checks} />
+            </section>
+          )}
+  
+          {lesson.tips && (
+            <section>
+              <h2>If something is off</h2>
+              <ul>
+                {lesson.tips.map((t) => (
+                  <li key={t}>
+                    <Rich text={t} />
                   </li>
                 ))}
-              </ol>
-              <SettingsCard settings={part.settings} />
-            </div>
-            <h3>What you should see</h3>
-            <ViewTabs key={part.title} gpios={part.settings.gpios} views={part.views} />
-          </section>
-        ))}
-
-        {lesson.tables?.map((t) => <Table key={t.title} table={t} />)}
-
-        {lesson.checks && (
-          <section>
-            <h2>Checklist</h2>
-            <Checklist lessonId={lesson.id} checks={lesson.checks} />
-          </section>
-        )}
-
-        {lesson.tips && (
-          <section>
-            <h2>If something is off</h2>
-            <ul>
-              {lesson.tips.map((t) => (
-                <li key={t}>
-                  <Rich text={t} />
-                </li>
+              </ul>
+            </section>
+          )}
+  
+          {lesson.questions.length > 0 && (
+            <section>
+              <h2>Check your understanding</h2>
+              {lesson.questions.map((q) => (
+                <details key={q.q} class="question">
+                  <summary>{q.q}</summary>
+                  <p>
+                    <Rich text={q.a} />
+                  </p>
+                </details>
               ))}
-            </ul>
-          </section>
-        )}
-
-        {lesson.questions.length > 0 && (
-          <section>
-            <h2>Check your understanding</h2>
-            {lesson.questions.map((q) => (
-              <details key={q.q} class="question">
-                <summary>{q.q}</summary>
-                <p>
-                  <Rich text={q.a} />
-                </p>
-              </details>
-            ))}
-          </section>
-        )}
-
-        <Pager lesson={lesson} />
-      </article>
+            </section>
+          )}
+  
+          <Pager lesson={lesson} />
+        </article>
+      </MysteryContext.Provider>
     </PresetContext.Provider>
   );
 }

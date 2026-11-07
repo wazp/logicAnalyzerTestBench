@@ -11,6 +11,7 @@ import { captureWindowLesson } from './basics/capture-window';
 import { dutyCycle } from './basics/duty-cycle';
 import { firstCapture } from './basics/first-capture';
 import { isItAlive } from './basics/is-it-alive';
+import { mysterySignal } from './basics/mystery-signal';
 import { patternTrigger } from './basics/pattern-trigger';
 import { rareEvent } from './basics/rare-event';
 import { switchBounce } from './basics/switch-bounce';
@@ -50,6 +51,7 @@ export const lessons: Lesson[] = [
   patternTrigger,
   isItAlive,
   switchBounce,
+  mysterySignal,
   // Protocols, on GP10-GP22.
   uart,
   i2c,
