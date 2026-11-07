@@ -3,8 +3,8 @@
 
 import { formatRate, formatTime } from '../../model/format';
 import { example, firstEdgeNs, gpioOf, protocolData as d } from '../../model/protocols';
-import { exampleViewOf, protocolWireSteps } from '../helpers';
-import type { Lesson, View } from '../types';
+import { exampleViewOf, onlyPins, protocolWireSteps } from '../helpers';
+import type { Lesson } from '../types';
 
 const tx = gpioOf('uart', 'tx');
 const rx = gpioOf('uart', 'rx');
@@ -46,9 +46,6 @@ const bRiseNs = firstEdgeNs(quadEx, qb, 'rising');
 const quadPhaseNs = bRiseNs - aRiseNs;
 const quadPeriodNs = 4 * d.quadrature.stepUs * 1e3;
 const quadRate = 100_000;
-
-/** A view with only the given pins, for examples that also carry pins this part does not record. */
-const onlyPins = (v: View, gpios: number[]): View => ({ ...v, rows: v.rows?.filter((r) => gpios.includes(r.gpio)) });
 
 const resolution = (rate: number) => formatTime(1e9 / rate);
 

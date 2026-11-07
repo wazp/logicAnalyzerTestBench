@@ -9,6 +9,7 @@
 import { aliasing } from './basics/aliasing';
 import { captureWindowLesson } from './basics/capture-window';
 import { dutyCycle } from './basics/duty-cycle';
+import { findOneEvent } from './basics/find-one-event';
 import { firstCapture } from './basics/first-capture';
 import { isItAlive } from './basics/is-it-alive';
 import { mysterySignal } from './basics/mystery-signal';
@@ -23,6 +24,7 @@ import { memoryDepth } from './concepts/memory-depth';
 import { triggers } from './concepts/triggers';
 import { vocabulary } from './concepts/vocabulary';
 import { voltageLevels } from './concepts/voltage-levels';
+import { decoderGarbage } from './protocols/decoder-garbage';
 import { i2c } from './protocols/i2c';
 import { irRemote } from './protocols/ir-remote';
 import { onewire } from './protocols/onewire';
@@ -59,6 +61,7 @@ export const lessons: Lesson[] = [
   switchBounce,
   mysterySignal,
   timingBetween,
+  findOneEvent,
   // Protocols, on GP10-GP22.
   uart,
   i2c,
@@ -67,6 +70,7 @@ export const lessons: Lesson[] = [
   onewire,
   irRemote,
   quadrature,
+  decoderGarbage,
   // Video and input, on GP10-GP19 with the "Video and input" preset.
   vgaLesson,
   nesController,
