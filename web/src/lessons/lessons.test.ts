@@ -67,6 +67,10 @@ describe('lessons', () => {
           for (const g of part.settings.gpios) expect(lesson.gpios).toContain(g);
         });
 
+        it(`"${part.title}" views only draw pins the lesson wires`, () => {
+          for (const v of part.views) for (const r of v.rows ?? []) expect(lesson.gpios).toContain(r.gpio);
+        });
+
         it(`"${part.title}" views fit inside the capture window`, () => {
           const w = captureWindow(part.settings);
           for (const v of part.views) {
