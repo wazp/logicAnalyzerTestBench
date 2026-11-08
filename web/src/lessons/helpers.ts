@@ -71,6 +71,9 @@ export function exampleViewOf(
   return { ...view, startNs: -zero, endNs: e.durationNs - zero, rows };
 }
 
+/** A view with only the given pins, for examples that also carry pins a part does not record. */
+export const onlyPins = (v: View, gpios: number[]): View => ({ ...v, rows: v.rows?.filter((r) => gpios.includes(r.gpio)) });
+
 /**
  * Examples of the same pins laid end to end: each example's first `edge` on
  * `gpio` is placed at its `atNs`. For captures longer than one example, e.g.

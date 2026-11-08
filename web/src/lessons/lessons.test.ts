@@ -11,9 +11,9 @@ describe('lessons', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('cover every protocol', () => {
+  it('cover every protocol, one lesson each, before any lesson across protocols', () => {
     const ids = lessons.filter((l) => l.track === 'protocols').map((l) => l.id);
-    expect(ids).toEqual(['uart', 'i2c', 'spi', 'ws2812', 'onewire', 'ir-remote', 'quadrature']);
+    expect(ids.slice(0, 7)).toEqual(['uart', 'i2c', 'spi', 'ws2812', 'onewire', 'ir-remote', 'quadrature']);
   });
 
   it('put every video preset lesson in the video track', () => {
