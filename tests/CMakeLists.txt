@@ -18,6 +18,7 @@ add_executable(timing_tests
     test_timeline.cpp
     test_protocols.cpp
     test_video.cpp
+    test_faults.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/timing.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/timeline.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocol_frame.cpp
@@ -29,6 +30,7 @@ add_executable(timing_tests
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/nec.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/quadrature.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/video_frame.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/faults_frame.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/vga.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/nes.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/ps2.cpp
@@ -98,3 +100,27 @@ add_test(NAME video_json_export COMMAND export_video ${CMAKE_CURRENT_BINARY_DIR}
 add_test(NAME video_json_up_to_date
     COMMAND ${CMAKE_COMMAND} -E compare_files ${CMAKE_CURRENT_BINARY_DIR}/video.json ${VIDEO_JSON})
 set_tests_properties(video_json_up_to_date PROPERTIES DEPENDS video_json_export)
+
+# Exports the "Faults" preset for the web guide's fault-finding lessons. Fix a
+# stale file with
+#   ./build-tests/export_faults web/src/data/faults.json
+add_executable(export_faults
+    ${CMAKE_CURRENT_LIST_DIR}/../tools/export_faults.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/faults_frame.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocol_frame.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/uart.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/i2c.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/spi.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/ws2812.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/onewire.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/nec.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/quadrature.cpp
+)
+target_include_directories(export_faults PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src)
+target_compile_options(export_faults PRIVATE -Wall -Wextra -Werror)
+
+set(FAULTS_JSON ${CMAKE_CURRENT_LIST_DIR}/../web/src/data/faults.json)
+add_test(NAME faults_json_export COMMAND export_faults ${CMAKE_CURRENT_BINARY_DIR}/faults.json)
+add_test(NAME faults_json_up_to_date
+    COMMAND ${CMAKE_COMMAND} -E compare_files ${CMAKE_CURRENT_BINARY_DIR}/faults.json ${FAULTS_JSON})
+set_tests_properties(faults_json_up_to_date PROPERTIES DEPENDS faults_json_export)

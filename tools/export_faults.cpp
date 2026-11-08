@@ -1,0 +1,266 @@
+// Writes the "Faults" preset as JSON for the web guide (web/src/data/faults.json):
+// pins, the faults and the values a learner should find, and one example
+// window per fault as edge lists.
+//
+// It builds the same frame as the firmware (src/core/faults_frame.cpp), so the
+// waveforms in the lessons are exactly what the board outputs. Built and run
+// by the host test project (tests/CMakeLists.txt); a ctest check fails if the
+// committed JSON is out of date.
+//
+//   usage: export_faults <output.json>
+
+#include <cstdio>
+#include <cstring>
+#include <string>
+#include <vector>
+
+#include "core/faults_frame.h"
+#include "core/protocols/onewire.h"
+#include "signal_config.h"
+
+namespace {
+
+constexpr uint32_t kSysHz = 150000000;
+
+double ns(double cycles) { return cycles * 1e9 / kSysHz; }
+
+struct PinInfo {
+    faults_frame::Pin pin;
+    const char* part;  // "uart", "parity", "i2c", "spi", "ws2812", "onewire" or "irq"
+    const char* role;
+    const char* name;
+    bool idle_high;
+};
+
+constexpr PinInfo kPins[] = {
+    {faults_frame::kUartTx, "uart", "tx", "UART TX (8N1)", true},
+    {faults_frame::kUartParity, "parity", "tx", "UART TX (8E1)", true},
+    {faults_frame::kI2cScl, "i2c", "scl", "I²C SCL", true},
+    {faults_frame::kI2cSda, "i2c", "sda", "I²C SDA", true},
+    {faults_frame::kSpiSck, "spi", "sck", "SPI SCK", false},
+    {faults_frame::kSpiMosi, "spi", "mosi", "SPI MOSI", false},
+    {faults_frame::kSpiMiso, "spi", "miso", "SPI MISO (device reply)", true},
+    {faults_frame::kSpiCs, "spi", "cs", "SPI CS", true},
+    {faults_frame::kWs2812, "ws2812", "data", "WS2812 data", false},
+    {faults_frame::kOneWire, "onewire", "dq", "1-Wire", true},
+    {faults_frame::kIrq, "irq", "irq", "Interrupt (active low)", true},
+};
+
+std::string numbers(const std::vector<double>& values) {
+    std::string out = "[";
+    for (size_t i = 0; i < values.size(); ++i) {
+        char b[32];
+        std::snprintf(b, sizeof(b), "%s%.9g", i ? ", " : "", values[i]);
+        out += b;
+    }
+    return out + "]";
+}
+
+// JSON string with the control characters a message can hold escaped.
+std::string json_text(const char* s) {
+    std::string out = "\"";
+    for (; *s; ++s) {
+        if (*s == '\r') out += "\\r";
+        else if (*s == '\n') out += "\\n";
+        else if (*s == '"' || *s == '\\') out += std::string("\\") + *s;
+        else out += *s;
+    }
+    return out + "\"";
+}
+
+// One example window: every pin of the part, as its level at the window start
+// plus toggle times in ns relative to the window start.
+void write_example(FILE* f, const faults_frame::Frame& frame, const char* part, const char* label, const char* title,
+                   double start, double end, bool last) {
+    std::fprintf(f, "        {\"label\": \"%s\", \"title\": \"%s\", \"durationNs\": %.9g, \"traces\": [", label, title,
+                 ns(end - start));
+    bool first = true;
+    for (const auto& p : kPins) {
+        if (std::strcmp(p.part, part) != 0) continue;
+        const wave::PinWave& w = frame.pins[p.pin];
+        const uint32_t s = static_cast<uint32_t>(start);
+        std::fprintf(f, "%s\n          {\"gpio\": %u, \"role\": \"%s\", \"initial\": %d, \"togglesNs\": [",
+                     first ? "" : ",", pins::kTimelineBase + p.pin, p.role, w.level_at(s) ? 1 : 0);
+        bool first_t = true;
+        for (size_t i = 0; i < w.count; ++i) {
+            const uint32_t t = w.toggles[i];
+            if (t <= s || t >= end) continue;
+            std::fprintf(f, "%s%.9g", first_t ? "" : ", ", ns(t - start));
+            first_t = false;
+        }
+        std::fprintf(f, "]}");
+        first = false;
+    }
+    std::fprintf(f, "\n        ]}%s\n", last ? "" : ",");
+}
+
+const faults_frame::Window* window(const faults_frame::Frame& frame, const char* part, const char* label) {
+    for (size_t i = 0; i < frame.window_count; ++i) {
+        if (!std::strcmp(frame.windows[i].protocol, part) && !std::strcmp(frame.windows[i].label, label)) {
+            return &frame.windows[i];
+        }
+    }
+    std::fprintf(stderr, "no %s window \"%s\"\n", part, label);
+    std::exit(1);
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+    if (argc != 2) {
+        std::fprintf(stderr, "usage: %s <output.json>\n", argv[0]);
+        return 2;
+    }
+    const config::FaultsConfig& c = config::kFaults;
+    static std::vector<uint32_t> pool(faults_frame::kPoolSize);
+    static faults_frame::Frame frame;
+    if (const char* error = faults_frame::build(frame, c, kSysHz, pool.data())) {
+        std::fprintf(stderr, "faults frame: %s\n", error);
+        return 1;
+    }
+    FILE* f = std::fopen(argv[1], "w");
+    if (f == nullptr) {
+        std::perror(argv[1]);
+        return 1;
+    }
+    const double us = kSysHz / 1e6;
+    auto ms = [](const faults_frame::Window* w) { return ns(w->start) / 1e6; };
+
+    std::fprintf(f, "{\n  \"_comment\": \"Generated by tools/export_faults.cpp from src/signal_config.h. Do not edit.\",\n");
+    std::fprintf(f, "  \"frameMs\": %.9g,\n", ns(frame.frame_cycles) / 1e6);
+    std::fprintf(f, "  \"pins\": [\n");
+    const size_t pin_count = sizeof(kPins) / sizeof(kPins[0]);
+    for (size_t i = 0; i < pin_count; ++i) {
+        const auto& p = kPins[i];
+        std::fprintf(f, "    {\"gpio\": %u, \"part\": \"%s\", \"role\": \"%s\", \"name\": \"%s\", \"idleHigh\": %s}%s\n",
+                     pins::kTimelineBase + p.pin, p.part, p.role, p.name, p.idle_high ? "true" : "false",
+                     i + 1 < pin_count ? "," : "");
+    }
+    std::fprintf(f, "  ],\n");
+    std::fprintf(f, "  \"unusedGpios\": [%u, %u],\n", pins::kTimelineBase + faults_frame::kUnused21,
+                 pins::kTimelineBase + faults_frame::kUnused22);
+
+    // --- UART 8N1 ---
+    {
+        const auto* good = window(frame, "uart", "good");
+        const auto* slow = window(frame, "uart", "slow");
+        const auto* framing = window(frame, "uart", "framing");
+        char m1[48], m2[48], m3[48];
+        faults_frame::uart_message(c, 1, m1, sizeof(m1));
+        faults_frame::uart_message(c, 2, m2, sizeof(m2));
+        faults_frame::uart_message(c, 3, m3, sizeof(m3));
+        const uint32_t slow_baud = faults_frame::slow_baud(c);
+        std::fprintf(f, "  \"uart\": {\n");
+        std::fprintf(f, "    \"baud\": %u, \"bitNs\": %.9g, \"slowBaud\": %u, \"slowBitNs\": %.9g, \"slowPercent\": %.9g,\n",
+                     c.uart_baud, 1e9 / c.uart_baud, slow_baud, 1e9 / slow_baud, c.uart_slow_percent);
+        std::fprintf(f, "    \"messages\": [%s, %s, %s], \"badStopIndex\": %zu,\n", json_text(m1).c_str(),
+                     json_text(m2).c_str(), json_text(m3).c_str(), std::strlen(c.uart_text));
+        std::fprintf(f, "    \"startsMs\": %s,\n", numbers({ms(good), ms(slow), ms(framing)}).c_str());
+        std::fprintf(f, "    \"examples\": [\n");
+        write_example(f, frame, "uart", "good", "Good message", good->start - 50 * us, good->end + 50 * us, false);
+        write_example(f, frame, "uart", "slow", "Slow sender", slow->start - 50 * us, slow->end + 50 * us, false);
+        write_example(f, frame, "uart", "framing", "Framing error", framing->start - 50 * us, framing->end + 50 * us,
+                      true);
+        std::fprintf(f, "    ]\n  },\n");
+    }
+
+    // --- UART 8E1 ---
+    {
+        const auto* good = window(frame, "parity", "good");
+        const auto* bad = window(frame, "parity", "bad");
+        std::fprintf(f, "  \"parity\": {\n");
+        std::fprintf(f, "    \"baud\": %u, \"format\": \"8E1\", \"text\": %s, \"badIndex\": %ld,\n", c.uart_baud,
+                     json_text(c.parity_text).c_str(), c.parity_bad_index);
+        std::fprintf(f, "    \"startsMs\": %s,\n", numbers({ms(good), ms(bad)}).c_str());
+        std::fprintf(f, "    \"examples\": [\n");
+        write_example(f, frame, "parity", "good", "Good reading", good->start - 50 * us, good->end + 50 * us, false);
+        write_example(f, frame, "parity", "bad", "Parity error", bad->start - 50 * us, bad->end + 50 * us, true);
+        std::fprintf(f, "    ]\n  },\n");
+    }
+
+    // --- I²C ---
+    {
+        const auto* stretch = window(frame, "i2c", "stretch");
+        const auto* nak = window(frame, "i2c", "data_nak");
+        std::fprintf(f, "  \"i2c\": {\n");
+        std::fprintf(f, "    \"clockHz\": %u, \"address\": %u, \"value\": [%u, %u], \"stretchUs\": %u,\n", c.i2c_hz,
+                     c.i2c_address, c.i2c_value >> 8, c.i2c_value & 0xFF, c.i2c_stretch_us);
+        std::fprintf(f, "    \"configRegister\": %u, \"configValue\": %u, \"startsMs\": %s,\n", c.i2c_config_register,
+                     c.i2c_config_value, numbers({ms(stretch), ms(nak)}).c_str());
+        std::fprintf(f, "    \"examples\": [\n");
+        write_example(f, frame, "i2c", "stretch", "Clock stretching", stretch->start - 20 * us, stretch->end + 20 * us,
+                      false);
+        write_example(f, frame, "i2c", "data_nak", "Data refused", nak->start - 20 * us, nak->end + 20 * us, true);
+        std::fprintf(f, "    ]\n  },\n");
+    }
+
+    // --- SPI ---
+    {
+        const auto* abort = window(frame, "spi", "abort");
+        const auto* mode1 = window(frame, "spi", "mode1");
+        std::fprintf(f, "  \"spi\": {\n");
+        std::fprintf(f, "    \"clockHz\": %u, \"mode\": 0, \"command\": %u, \"reply\": [%u, %u, %u], \"abortBits\": %u,\n",
+                     c.spi_hz, c.spi_command, c.spi_reply[0], c.spi_reply[1], c.spi_reply[2], c.spi_abort_bits);
+        std::fprintf(f, "    \"retryAfterUs\": %u, \"mode1DelayNs\": %u, \"startsMs\": %s,\n",
+                     c.spi_retry_us - c.spi_abort_us, c.spi_mode1_delay_ns, numbers({ms(abort), ms(mode1)}).c_str());
+        std::fprintf(f, "    \"examples\": [\n");
+        write_example(f, frame, "spi", "abort", "Aborted, then retried", abort->start - 2 * us, abort->end + 2 * us,
+                      false);
+        write_example(f, frame, "spi", "mode1", "Device in the wrong mode", mode1->start - 2 * us, mode1->end + 2 * us,
+                      true);
+        std::fprintf(f, "    ]\n  },\n");
+    }
+
+    // --- WS2812 ---
+    {
+        const auto* update = window(frame, "ws2812", "update");
+        std::fprintf(f, "  \"ws2812\": {\n");
+        std::fprintf(f, "    \"leds\": %u, \"level\": %u, \"badLed\": %ld, \"badBit\": %d, \"badHighNs\": %u,\n",
+                     c.ws2812_leds, c.ws2812_level, c.ws2812_bad_led, c.ws2812_bad_bit, c.ws2812_bad_high_ns);
+        std::fprintf(f, "    \"bitNs\": 1250, \"t0hNs\": 400, \"t1hNs\": 800, \"startsMs\": %s,\n",
+                     numbers({ms(update), (c.ws2812_first_us + c.ws2812_period_us) / 1000.0}).c_str());
+        std::fprintf(f, "    \"examples\": [\n");
+        write_example(f, frame, "ws2812", "update", "One update", update->start - 2 * us, update->end + 60 * us, true);
+        std::fprintf(f, "    ]\n  },\n");
+    }
+
+    // --- 1-Wire ---
+    {
+        const auto* absent = window(frame, "onewire", "absent");
+        const auto* read = window(frame, "onewire", "bad_crc");
+        uint8_t pad[9];
+        faults_frame::onewire_scratchpad(c, pad);
+        std::vector<double> bytes(pad, pad + 9);
+        std::fprintf(f, "  \"onewire\": {\n");
+        std::fprintf(f, "    \"scratchpad\": %s, \"crcOfFirst8\": %u, \"badByte\": %u, \"resetLowUs\": %.9g,\n",
+                     numbers(bytes).c_str(), proto::onewire_crc8(pad, 8), c.onewire_bad_byte,
+                     proto::kOneWireResetLowUs);
+        std::fprintf(f, "    \"presenceLowUs\": %.9g, \"startsMs\": %s,\n", proto::kOneWirePresenceLowUs,
+                     numbers({ms(absent), ms(read)}).c_str());
+        std::fprintf(f, "    \"examples\": [\n");
+        write_example(f, frame, "onewire", "absent", "Nobody answers", absent->start - 20 * us, absent->end + 20 * us,
+                      false);
+        write_example(f, frame, "onewire", "bad_crc", "Bad CRC", read->start - 20 * us, read->end + 20 * us, true);
+        std::fprintf(f, "    ]\n  },\n");
+    }
+
+    // --- Interrupt line ---
+    {
+        std::fprintf(f, "  \"irq\": {\n    \"pulseNs\": %u, \"pulses\": [", c.irq_pulse_ns);
+        bool first = true;
+        for (size_t i = 0; i < frame.window_count; ++i) {
+            const auto& w = frame.windows[i];
+            if (std::strcmp(w.protocol, "irq") != 0) continue;
+            std::fprintf(f, "%s{\"atMs\": %.9g, \"widthNs\": %.9g, \"glitch\": %s}", first ? "" : ", ", ns(w.start) / 1e6,
+                         ns(w.end - w.start), std::strcmp(w.label, "glitch") == 0 ? "true" : "false");
+            first = false;
+        }
+        std::fprintf(f, "],\n    \"examples\": [\n");
+        write_example(f, frame, "irq", "frame", "A whole frame", 0, frame.frame_cycles - 1, true);
+        std::fprintf(f, "    ]\n  }\n");
+    }
+
+    std::fprintf(f, "}\n");
+    std::fclose(f);
+    return 0;
+}

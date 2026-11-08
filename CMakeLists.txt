@@ -53,6 +53,7 @@ add_executable(logic_test_bench
     src/core/protocols/nec.cpp
     src/core/protocols/quadrature.cpp
     src/core/video_frame.cpp
+    src/core/faults_frame.cpp
     src/core/protocols/vga.cpp
     src/core/protocols/nes.cpp
     src/core/protocols/ps2.cpp
@@ -83,7 +84,8 @@ set_source_files_properties(
     src/core/settings.cpp
     src/core/scan_list.cpp src/core/timeline.cpp src/core/protocol_frame.cpp src/core/protocols/uart.cpp
     src/core/protocols/i2c.cpp src/core/protocols/spi.cpp src/core/protocols/ws2812.cpp src/core/protocols/onewire.cpp
-    src/core/protocols/nec.cpp src/core/protocols/quadrature.cpp src/core/video_frame.cpp src/core/protocols/vga.cpp
+    src/core/protocols/nec.cpp src/core/protocols/quadrature.cpp src/core/video_frame.cpp src/core/faults_frame.cpp
+    src/core/protocols/vga.cpp
     src/core/protocols/nes.cpp src/core/protocols/ps2.cpp src/hw/dma_loop.cpp src/hw/timeline_output.cpp
     src/hw/settings_store.cpp src/hw/bootsel_button.cpp src/hw/square_output.cpp
     src/hw/pattern_output.cpp src/hw/pwm_output.cpp src/console/serial_console.cpp src/net/wifi.cpp
@@ -158,6 +160,6 @@ pico_enable_stdio_uart(logic_test_bench 0)
 
 pico_set_program_name(logic_test_bench "logic_test_bench")
 pico_set_program_description(logic_test_bench "Programmable digital test signal generator for logic analyzers")
-pico_set_program_version(logic_test_bench "0.5.0")
+pico_set_program_version(logic_test_bench "0.6.0")
 
 pico_add_extra_outputs(logic_test_bench)

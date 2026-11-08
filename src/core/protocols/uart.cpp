@@ -3,7 +3,7 @@
 namespace proto {
 
 double uart_write(wave::PinWave& pin, double start, double sys_hz, const UartFormat& format, const uint8_t* data,
-                  size_t len) {
+                  size_t len, const UartFaults& faults) {
     const double bit = uart_bit_cycles(sys_hz, format.baud);
     size_t k = 0;  // Bit index from `start`, so rounding never accumulates.
     auto put = [&](bool level) { pin.set(start + bit * static_cast<double>(k++), level); };
@@ -17,9 +17,10 @@ double uart_write(wave::PinWave& pin, double start, double sys_hz, const UartFor
             ones += level ? 1u : 0u;
             put(level);
         }
-        if (format.parity == 'E') put(ones % 2 != 0);
-        if (format.parity == 'O') put(ones % 2 == 0);
-        for (unsigned s = 0; s < format.stop_bits; ++s) put(true);
+        const bool flip = static_cast<long>(i) == faults.bad_parity;
+        if (format.parity == 'E') put((ones % 2 != 0) != flip);
+        if (format.parity == 'O') put((ones % 2 == 0) != flip);
+        for (unsigned s = 0; s < format.stop_bits; ++s) put(!(s == 0 && static_cast<long>(i) == faults.bad_stop));
     }
     return start + bit * static_cast<double>(k);
 }

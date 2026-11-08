@@ -133,6 +133,7 @@ const trackLabel: Record<Lesson['track'], string> = {
   learn: 'Learn',
   protocols: 'Protocols',
   video: 'Video and input',
+  faults: 'Find the bug',
   verify: 'Verify your analyzer',
 };
 

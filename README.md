@@ -36,6 +36,7 @@ On the hotspot the guide runs on your phone, so it can sit next to the analyzer:
 | Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers, checking whether a board is alive, switch bounce, identifying an unknown signal, timing between two signals, finding one event in a long recording, exporting and scripting |
 | Protocols | UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder, what wrong decoder settings look like, and (optional) stacked sigrok decoders |
 | Video and input | VGA video timing, an NES controller, a PS/2 keyboard (with the Video and input preset) |
+| Find the bug | UART with a slow sender, a framing and a parity error; I²C clock stretching and a refused write; SPI cut short and in the wrong mode; a marginal WS2812 bit; 1-Wire with no device and a bad CRC; glitch hunting (with the Faults preset) |
 | Verify | Sanity check of every analyzer input with a pass/fail checklist, clock accuracy in ppm |
 
 Every lesson needs at most **8 inputs** and **24 MS/s**, so even the cheapest USB analyzers can follow all of them. Signals are named by Pico pin (GP0, GP10...) rather than analyzer channel, and every expected waveform in the guide is computed from the same configuration the firmware uses, so the guide and the board can't disagree.
@@ -58,7 +59,7 @@ Looking for an analyzer? The [gusmanb LogicAnalyzer](https://github.com/gusmanb/
 
 ## How it works
 
-All signals are generated in hardware (PIO, PWM and DMA). Once started, the CPU only runs the USB serial console and the Wi-Fi web server, so the signals have no software jitter. The basic signals cover square waves, PWM and pulses (sample rates, triggers, measuring); GP10 to GP22 carry the protocols you meet on real boards, or, with the other [signal preset](#signal-presets), a VGA picture, an NES controller and a PS/2 keyboard. GP26 is a push button that bounces like a real one. Every protocol simulates both sides of its bus, so nothing else needs to be connected.
+All signals are generated in hardware (PIO, PWM and DMA). Once started, the CPU only runs the USB serial console and the Wi-Fi web server, so the signals have no software jitter. The basic signals cover square waves, PWM and pulses (sample rates, triggers, measuring); GP10 to GP22 carry the protocols you meet on real boards, or, with another [signal preset](#signal-presets), a VGA picture, an NES controller and a PS/2 keyboard, or the same buses with realistic mistakes to find. GP26 is a push button that bounces like a real one. Every protocol simulates both sides of its bus, so nothing else needs to be connected.
 
 The guide is a small web app built into the firmware. It needs no internet connection, no app install and no account. All you need is the Pico and this firmware.
 
@@ -124,12 +125,13 @@ GP10 to GP22 play one **preset** at a time. GP0 to GP9 and the GP26 button never
 |---|---|
 | **Protocols** (default) | UART, I²C, SPI, WS2812, 1-Wire, IR remote and a quadrature encoder, as listed above |
 | **Video and input** | A VGA picture, an NES controller and a PS/2 keyboard, listed below |
+| **Faults** | The protocol buses with realistic mistakes to find, each next to a good transaction, and an interrupt line with glitches, listed below |
 
 To switch, use any of these:
 
 - **Settings > Signal preset** in the guide. Lessons that need the other preset also show a **Switch** button at the top.
 - Press `p` on the [serial console](#usb-serial-console), then the preset's number.
-- `POST /api/preset` with the form field `preset=protocols` or `preset=video`.
+- `POST /api/preset` with the form field `preset=protocols`, `preset=video` or `preset=faults`.
 
 Switching saves the preset and restarts the board, which takes a few seconds, so every signal starts in step again. The board remembers the preset when unplugged, and a saved Wi-Fi network is kept. On the setup hotspot, your phone may need to rejoin `TestBench-XXXX` after the restart.
 
@@ -150,6 +152,22 @@ Switching saves the preset and restarts the board, which takes a few seconds, so
 | GP20-GP22 | 26, 27, 29 | (none) | Held low in this preset |
 
 The VGA pins can drive a real monitor, the one place on the test bench meant for a real device: connect GP12, GP13 and GP14 through 270 Ω resistors to VGA pins 1, 2 and 3, GP10 to pin 13, GP11 to pin 14, and GND to pins 5 to 8 and 10. The pixel clock is 25 MHz rather than the standard 25.175 MHz, which monitors accept. Never connect these pins to a VGA output.
+
+#### Faults preset
+
+The buses sit on the same pins as in the Protocols preset, so the wiring of the protocol lessons still works. Every fault repeats once per 120 ms frame, next to a good transaction to compare with.
+
+| GPIO | Physical pin | Signal | What goes wrong |
+|---|---|---|---|
+| GP10 | 14 | UART TX, 115200 8N1 | A good message, the same from a sender 3% slow (111,744 baud), and one with a framing error (a low stop bit) |
+| GP11 | 15 | UART TX, 115200 8E1 | A reading sent twice; the second has a parity error |
+| GP12 | 16 | I²C SCL | A read during which the sensor stretches the clock by 150 µs |
+| GP13 | 17 | I²C SDA | A write whose data byte the sensor refuses (NAK) |
+| GP14-GP17 | 19-22 | SPI SCK, MOSI, MISO, CS | A transfer aborted after 12 bits (CS rises mid-byte) and retried, and one answered by a device in SPI mode 1 |
+| GP18 | 24 | WS2812 data | 8 LEDs in dim white; one bit of LED 5 is 550 ns high, between a 0 and a 1 |
+| GP19 | 25 | 1-Wire | A reset nobody answers (no presence pulse), then a scratchpad read with a bad CRC |
+| GP20 | 26 | Interrupt line, active low | Two real 10 µs pulses, and glitches of 20, 40 and 100 ns at irregular times |
+| GP21-GP22 | 27, 29 | (none) | Held low in this preset |
 
 ### The GP26 bouncing button
 
@@ -340,7 +358,7 @@ npm --prefix web test
 
 ## Working on the web guide
 
-The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 75 KB gzipped).
+The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 90 KB gzipped).
 
 ```bash
 npm --prefix web ci

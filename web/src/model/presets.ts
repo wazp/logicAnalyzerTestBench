@@ -2,10 +2,11 @@
 // (src/core/presets.h). GP0-GP9 and the GP26 button never change. The board
 // plays one preset at a time; switching saves it and restarts the board.
 
+import { faultsPins } from './faults';
 import { protocolPins } from './protocols';
 import { videoPins } from './video';
 
-export type PresetId = 'protocols' | 'video';
+export type PresetId = 'protocols' | 'video' | 'faults';
 
 export interface Preset {
   id: PresetId;
@@ -24,6 +25,11 @@ export const presets: Preset[] = [
     title: 'Video and input',
     summary: 'A VGA picture of color bars, an NES controller and a PS/2 keyboard.',
   },
+  {
+    id: 'faults',
+    title: 'Faults',
+    summary: 'The protocol buses with realistic mistakes to find, each next to a good transaction, and a line with glitches.',
+  },
 ];
 
 /** The preset a board starts with until another one is chosen. */
@@ -39,5 +45,5 @@ export function presetById(id: PresetId): Preset {
 
 /** The timeline pins a preset drives, with their names. */
 export function presetPins(id: PresetId): { gpio: number; name: string }[] {
-  return id === 'video' ? videoPins : protocolPins;
+  return id === 'video' ? videoPins : id === 'faults' ? faultsPins : protocolPins;
 }
