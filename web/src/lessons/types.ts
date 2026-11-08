@@ -59,6 +59,8 @@ export interface Section {
   bullets?: string[];
   table?: FactTable;
   figure?: Figure;
+  /** A program or file to copy, shown as a code block after the bullets. */
+  code?: string;
 }
 
 export interface Lesson {
