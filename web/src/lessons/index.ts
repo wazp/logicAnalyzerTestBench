@@ -18,6 +18,8 @@ import { switchBounce } from './basics/switch-bounce';
 import { timingBetween } from './basics/timing-between';
 import { gotchas } from './concepts/gotchas';
 import { howItWorks } from './concepts/how-it-works';
+import { limits } from './concepts/limits';
+import { memoryDepth } from './concepts/memory-depth';
 import { triggers } from './concepts/triggers';
 import { vocabulary } from './concepts/vocabulary';
 import { voltageLevels } from './concepts/voltage-levels';
@@ -44,6 +46,8 @@ export const lessons: Lesson[] = [
   vocabulary,
   triggers,
   gotchas,
+  limits,
+  memoryDepth,
   // Learn: the basics, on GP0-GP9 and the GP26 button.
   firstCapture,
   aliasing,
