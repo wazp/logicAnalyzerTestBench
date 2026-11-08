@@ -15,6 +15,7 @@ import { mysterySignal } from './basics/mystery-signal';
 import { patternTrigger } from './basics/pattern-trigger';
 import { rareEvent } from './basics/rare-event';
 import { switchBounce } from './basics/switch-bounce';
+import { timingBetween } from './basics/timing-between';
 import { gotchas } from './concepts/gotchas';
 import { howItWorks } from './concepts/how-it-works';
 import { triggers } from './concepts/triggers';
@@ -52,6 +53,7 @@ export const lessons: Lesson[] = [
   isItAlive,
   switchBounce,
   mysterySignal,
+  timingBetween,
   // Protocols, on GP10-GP22.
   uart,
   i2c,

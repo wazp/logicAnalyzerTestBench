@@ -33,7 +33,7 @@ On the hotspot the guide runs on your phone, so it can sit next to the analyzer:
 | Track | Lessons |
 |---|---|
 | Concepts | How a logic analyzer works, voltage levels and thresholds (3.3V, 5V, VREF), the words analyzers use, triggers, common gotchas |
-| Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers, checking whether a board is alive, switch bounce |
+| Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers, checking whether a board is alive, switch bounce, identifying an unknown signal, timing between two signals |
 | Protocols | UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder |
 | Video and input | VGA video timing, an NES controller, a PS/2 keyboard (with the Video and input preset) |
 | Verify | Sanity check of every analyzer input with a pass/fail checklist |

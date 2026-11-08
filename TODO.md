@@ -4,7 +4,7 @@ Work we plan to do, roughly in priority order within each section. The README's 
 
 ## Lessons
 
-- [ ] **Timing between two signals.** Measuring the delay from one signal to another: the UART reply after each TX message, MOSI changing relative to SCK, and the phase between quadrature A and B (which also gives the direction). Uses the Protocols preset; no firmware change.
+- [x] **Timing between two signals.** Measuring the delay from one signal to another: the UART reply after each TX message, MOSI changing relative to SCK, and the phase between quadrature A and B (which also gives the direction). Uses the Protocols preset; no firmware change.
 - [ ] **When the decoder shows garbage.** The usual reasons a decode looks wrong, each shown on a real capture: I²C addresses written as 7-bit or shifted to 8-bit, the wrong SPI mode, LSB or MSB first, a wrong baud rate or inverted UART, and swapped clock and data lines. Pairs with the Faults preset below.
 - [ ] **Glitch hunting.** Catching a rare, very short glitch: with a pulse-width trigger where the analyzer has one, otherwise by sampling fast enough and searching the capture. Needs the glitch pin (see Firmware).
 - [ ] **What a logic analyzer can't show you.** A concepts lesson without captures: ringing, slow edges, runt pulses and bus contention all turn into clean-looking 0s and 1s (or extra edges). When the picture is lying, and when a scope is the right tool. Reuse the threshold diagram from "Voltage levels and thresholds".
