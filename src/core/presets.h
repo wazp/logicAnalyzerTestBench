@@ -17,11 +17,12 @@ enum class Preset : uint8_t {
     kProtocols = 0,  // UART, I²C, SPI, WS2812, 1-Wire, IR, quadrature (src/core/protocol_frame.h)
     kVideo = 1,      // VGA, NES controller, PS/2 keyboard (src/core/video_frame.h)
     kFaults = 2,     // The protocol buses with mistakes to find (src/core/faults_frame.h)
+    kVerify = 3,     // A binary counter and frequency bursts for checking an analyzer (src/core/verify_frame.h)
 };
 
-constexpr unsigned kCount = 3;
+constexpr unsigned kCount = 4;
 constexpr Preset kDefault = Preset::kProtocols;
-constexpr Preset kAll[kCount] = {Preset::kProtocols, Preset::kVideo, Preset::kFaults};
+constexpr Preset kAll[kCount] = {Preset::kProtocols, Preset::kVideo, Preset::kFaults, Preset::kVerify};
 
 // Stable code for the web API, the console and the guide's JSON.
 inline const char* code(Preset p) {
@@ -29,6 +30,7 @@ inline const char* code(Preset p) {
         case Preset::kProtocols: return "protocols";
         case Preset::kVideo: return "video";
         case Preset::kFaults: return "faults";
+        case Preset::kVerify: return "verify";
     }
     return "protocols";
 }
@@ -38,6 +40,7 @@ inline const char* title(Preset p) {
         case Preset::kProtocols: return "Protocols";
         case Preset::kVideo: return "Video and input";
         case Preset::kFaults: return "Faults";
+        case Preset::kVerify: return "Verify";
     }
     return "Protocols";
 }

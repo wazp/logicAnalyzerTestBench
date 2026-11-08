@@ -19,6 +19,7 @@ add_executable(timing_tests
     test_protocols.cpp
     test_video.cpp
     test_faults.cpp
+    test_verify.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/timing.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/timeline.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocol_frame.cpp
@@ -31,6 +32,7 @@ add_executable(timing_tests
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/quadrature.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/video_frame.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/faults_frame.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/verify_frame.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/vga.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/nes.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/ps2.cpp
@@ -124,3 +126,19 @@ add_test(NAME faults_json_export COMMAND export_faults ${CMAKE_CURRENT_BINARY_DI
 add_test(NAME faults_json_up_to_date
     COMMAND ${CMAKE_COMMAND} -E compare_files ${CMAKE_CURRENT_BINARY_DIR}/faults.json ${FAULTS_JSON})
 set_tests_properties(faults_json_up_to_date PROPERTIES DEPENDS faults_json_export)
+
+# Exports the "Verify" preset for the web guide's analyzer checks. Fix a stale
+# file with
+#   ./build-tests/export_verify web/src/data/verify.json
+add_executable(export_verify
+    ${CMAKE_CURRENT_LIST_DIR}/../tools/export_verify.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/verify_frame.cpp
+)
+target_include_directories(export_verify PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src)
+target_compile_options(export_verify PRIVATE -Wall -Wextra -Werror)
+
+set(VERIFY_JSON ${CMAKE_CURRENT_LIST_DIR}/../web/src/data/verify.json)
+add_test(NAME verify_json_export COMMAND export_verify ${CMAKE_CURRENT_BINARY_DIR}/verify.json)
+add_test(NAME verify_json_up_to_date
+    COMMAND ${CMAKE_COMMAND} -E compare_files ${CMAKE_CURRENT_BINARY_DIR}/verify.json ${VERIFY_JSON})
+set_tests_properties(verify_json_up_to_date PROPERTIES DEPENDS verify_json_export)

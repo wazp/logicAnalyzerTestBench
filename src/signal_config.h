@@ -312,6 +312,32 @@ struct FaultsConfig {
 
 inline constexpr FaultsConfig kFaults{};
 
+// ---------------------------------------------------------------------------
+// "Verify" preset on GP10-GP22 (see src/core/verify_frame.h)
+// ---------------------------------------------------------------------------
+// Signals for checking an analyzer rather than learning a protocol: a binary
+// counter on GP10-GP21 (every input gets a different frequency, and the
+// higher bits change exactly when the lower ones do, so any skew between
+// inputs shows), and bursts of known frequencies on GP22 up to 25 MHz, to
+// find where an analyzer stops keeping up. The frame is one full count.
+struct VerifyConfig {
+    // Counter: bit 0 (GP10) toggles every step; bit n every 2^n steps.
+    uint32_t counter_step_ns = 2000;
+    unsigned counter_bits = 12;  // GP10-GP21.
+
+    // Bursts on GP22, idle low between them: burst_periods square-wave
+    // periods at each frequency, fastest first, burst_gap_us apart. Every
+    // half period must be a whole number of clk_sys cycles that also divides
+    // a counter step, so burst and counter edges never get in each other's
+    // way on the timeline.
+    double burst_hz[8] = {25e6, 18.75e6, 15e6, 12.5e6, 7.5e6, 5e6, 2.5e6, 1e6};
+    unsigned burst_periods = 16;
+    uint32_t burst_first_us = 100;
+    uint32_t burst_gap_us = 20;
+};
+
+inline constexpr VerifyConfig kVerify{};
+
 // The timeline state machine: the free one next to the pattern.
 constexpr unsigned kTimelinePioIndex = 1;
 constexpr unsigned kTimelineSm = 3;

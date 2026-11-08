@@ -4,9 +4,10 @@
 
 import { faultsPins } from './faults';
 import { protocolPins } from './protocols';
+import { verifyPins } from './verify';
 import { videoPins } from './video';
 
-export type PresetId = 'protocols' | 'video' | 'faults';
+export type PresetId = 'protocols' | 'video' | 'faults' | 'verify';
 
 export interface Preset {
   id: PresetId;
@@ -30,6 +31,11 @@ export const presets: Preset[] = [
     title: 'Faults',
     summary: 'The protocol buses with realistic mistakes to find, each next to a good transaction, and a line with glitches.',
   },
+  {
+    id: 'verify',
+    title: 'Verify',
+    summary: 'A 12-bit binary counter and frequency bursts up to 25 MHz, for checking every input, the skew between them and the top speed.',
+  },
 ];
 
 /** The preset a board starts with until another one is chosen. */
@@ -45,5 +51,8 @@ export function presetById(id: PresetId): Preset {
 
 /** The timeline pins a preset drives, with their names. */
 export function presetPins(id: PresetId): { gpio: number; name: string }[] {
-  return id === 'video' ? videoPins : id === 'faults' ? faultsPins : protocolPins;
+  if (id === 'video') return videoPins;
+  if (id === 'faults') return faultsPins;
+  if (id === 'verify') return verifyPins;
+  return protocolPins;
 }

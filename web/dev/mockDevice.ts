@@ -2,7 +2,7 @@
 // (src/net/http_server.h), so the Wi-Fi page can be worked on without a board.
 // Not part of the build. Start in a different state with
 //   MOCK_MODE=joined npm run dev      (setup | joined | error | none)
-//   MOCK_PRESET=video npm run dev     (protocols | video | faults)
+//   MOCK_PRESET=video npm run dev     (protocols | video | faults | verify)
 // "none" answers 404, like a static host. Switching the preset "restarts":
 // the status API stops answering for two seconds.
 
@@ -82,7 +82,7 @@ export function mockDevice(): Plugin {
           req.on('data', (chunk) => (body += String(chunk)));
           req.on('end', () => {
             const wanted = new URLSearchParams(body).get('preset') ?? '';
-            if (!['protocols', 'video', 'faults'].includes(wanted)) return send(400, { ok: false, error: 'unknown_preset' });
+            if (!['protocols', 'video', 'faults', 'verify'].includes(wanted)) return send(400, { ok: false, error: 'unknown_preset' });
             const restarting = wanted !== preset;
             send(200, { ok: true, preset: wanted, restarting });
             if (restarting) {
