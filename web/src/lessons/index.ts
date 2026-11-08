@@ -29,6 +29,7 @@ import { i2c } from './protocols/i2c';
 import { irRemote } from './protocols/ir-remote';
 import { onewire } from './protocols/onewire';
 import { quadrature } from './protocols/quadrature';
+import { sigrokDecoders } from './protocols/sigrok-decoders';
 import { spi } from './protocols/spi';
 import { uart } from './protocols/uart';
 import { ws2812 } from './protocols/ws2812';
@@ -71,6 +72,7 @@ export const lessons: Lesson[] = [
   irRemote,
   quadrature,
   decoderGarbage,
+  sigrokDecoders,
   // Video and input, on GP10-GP19 with the "Video and input" preset.
   vgaLesson,
   nesController,

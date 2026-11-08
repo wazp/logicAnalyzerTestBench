@@ -11,7 +11,7 @@ Work we plan to do, roughly in priority order within each section. The README's 
 - [x] **Memory depth and long captures.** Why sample rate times length runs into the analyzer's buffer, what compression (RLE) does for quiet signals, and streaming vs buffered capture. Also that some software shows only part of a long capture at once.
 - [x] **Finding one event in a long recording.** Locating a single rare event (the I²C NAK from 0x49, the IR repeat code) in a long capture. Harder to keep analyzer neutral, since search features differ a lot between programs.
 - [ ] **Exporting and scripting.** Saving a capture as CSV or VCD and processing it outside the analyzer software, for example a short script that measures every UART bit time. Most programs can export one of the two.
-- [ ] **Optional: using sigrok protocol decoders.** Only for software that runs sigrok decoders (PulseView, sigrok-cli and some analyzer apps, the gusmanb LogicAnalyzer among them). Many analyzers support them, but not all, so:
+- [x] **Optional: using sigrok protocol decoders.** Only for software that runs sigrok decoders (PulseView, sigrok-cli and some analyzer apps, the gusmanb LogicAnalyzer among them). Many analyzers support them, but not all, so:
   - Mark it clearly as optional in the lesson list and at the top of the lesson, with one line saying who can skip it ("if your software has no sigrok decoders, skip this lesson; nothing later depends on it").
   - Probably needs a small `optional` flag on `Lesson` so the list and the lesson page can show it, plus a lesson test that no other lesson links to it as a prerequisite.
   - Content: what a decoder is (a script that reads the channels you assign it), assigning channels and options, stacking decoders (UART into a higher-level decoder, I²C into a device decoder), and reading the annotation rows. Practice on the protocols the bench already plays.
@@ -44,7 +44,7 @@ GP27 and GP28 are the only free pins, so the speed test and the glitch pin use b
 
 ## Guide
 
-- [ ] **Progress tracking.** A checkmark per finished lesson, stored in the browser (localStorage), shown in the lesson list. Must keep working when storage is unavailable.
+- [x] **Progress tracking.** A checkmark per finished lesson, stored in the browser (localStorage), shown in the lesson list. Must keep working when storage is unavailable.
 
 ## Hardware checks
 

@@ -68,6 +68,11 @@ export interface Lesson {
   preset?: PresetId;
   /** Finding out what the pins carry is the exercise: the page hides their names, and parts show no waveforms. */
   mystery?: boolean;
+  /**
+   * Set for a lesson not everyone can follow (it needs a feature some analyzer software lacks): who can skip
+   * it, shown at the top of the lesson. The lesson list tags it as optional, and no other lesson may rely on it.
+   */
+  optional?: string;
   title: string;
   summary: string;
   /** Pico pins to wire up, each to any free analyzer input. Empty for a reading-only lesson. */
