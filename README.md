@@ -36,7 +36,7 @@ On the hotspot the guide runs on your phone, so it can sit next to the analyzer:
 | Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers, checking whether a board is alive, switch bounce, identifying an unknown signal, timing between two signals |
 | Protocols | UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder |
 | Video and input | VGA video timing, an NES controller, a PS/2 keyboard (with the Video and input preset) |
-| Verify | Sanity check of every analyzer input with a pass/fail checklist |
+| Verify | Sanity check of every analyzer input with a pass/fail checklist, clock accuracy in ppm |
 
 Every lesson needs at most **8 inputs** and **24 MS/s**, so even the cheapest USB analyzers can follow all of them. Signals are named by Pico pin (GP0, GP10...) rather than analyzer channel, and every expected waveform in the guide is computed from the same configuration the firmware uses, so the guide and the board can't disagree.
 

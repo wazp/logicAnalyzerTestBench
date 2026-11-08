@@ -22,7 +22,7 @@ Work we plan to do, roughly in priority order within each section. The README's 
 For people building or checking their own analyzer.
 
 - [ ] **How fast can your analyzer really go?** One pin plays short bursts at stepped frequencies (for example 1, 5, 10, 25 and 37.5 MHz, all PIO-friendly divisions of 150 MHz) so you can see where the inputs stop following the signal, which is often well below the advertised sample rate. Needs a free pin (GP27).
-- [ ] **Is your analyzer's clock accurate?** Measure the 1 Hz and 1 kHz signals over a long capture and work out the error in ppm. The Pico's crystal (about ±30 ppm) is the reference, so state that limit in the lesson. No firmware change.
+- [x] **Is your analyzer's clock accurate?** Measure the 1 Hz and 1 kHz signals over a long capture and work out the error in ppm. The Pico's crystal (about ±30 ppm) is the reference, so state that limit in the lesson. No firmware change.
 - [ ] **Named presets for the Verify track**, for example a 24-input channel and skew test.
 
 ## Firmware and signals
