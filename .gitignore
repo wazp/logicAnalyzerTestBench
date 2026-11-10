@@ -7,3 +7,4 @@ web/node_modules/
 web/dist/
 .claude/
 *.local.md
+__pycache__/
