@@ -63,15 +63,12 @@ function Nav({ route, open, lesson }: { route: string; open: boolean; lesson: Le
   );
   return (
     <nav id="sidebar" class={open ? 'sidebar open' : 'sidebar'}>
-      <div class="brand-row">
-        <a class="brand" href="#/">
-          <svg viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M1 12h3V4h4v8h3V4h4" />
-          </svg>
-          Test Bench
-        </a>
-        <ThemeToggle />
-      </div>
+      <a class="brand" href="#/">
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M1 12h3V4h4v8h3V4h4" />
+        </svg>
+        Test Bench
+      </a>
       {link('/', 'Start here')}
       {next && (
         <a class="nav-continue" href={`#/lesson/${next.id}`}>
@@ -107,6 +104,7 @@ function Nav({ route, open, lesson }: { route: string; open: boolean; lesson: Le
       <div class="nav-group nav-heading">Settings</div>
       {link('/wifi', 'Wi-Fi')}
       {link('/preset', 'Signal preset')}
+      <ThemeToggle />
     </nav>
   );
 }
@@ -184,7 +182,6 @@ export function App() {
           </svg>
           Test Bench
         </a>
-        <ThemeToggle />
       </header>
       <div class={drawerOpen ? 'backdrop open' : 'backdrop'} onClick={() => setDrawerOpen(false)} />
       <Nav route={route} open={drawerOpen} lesson={lesson} />
