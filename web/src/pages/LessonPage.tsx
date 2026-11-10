@@ -135,6 +135,7 @@ const trackLabel: Record<Lesson['track'], string> = {
   video: 'Video and input',
   faults: 'Find the bug',
   verify: 'Verify your analyzer',
+  hardware: 'On real hardware',
 };
 
 function DoneToggle({ lesson }: { lesson: Lesson }) {

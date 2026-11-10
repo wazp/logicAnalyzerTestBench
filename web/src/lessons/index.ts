@@ -2,7 +2,7 @@
 // written out here rather than discovered from the files.
 //
 // To add a lesson: create one file exporting a `Lesson` in concepts/,
-// basics/, protocols/, video/, faults/ or verify/ (shared building blocks are in helpers.ts, the shapes
+// basics/, protocols/, video/, faults/, verify/ or hardware/ (shared building blocks are in helpers.ts, the shapes
 // in types.ts), then add it to this list. The tests in lessons.test.ts check
 // every lesson listed here.
 
@@ -25,13 +25,24 @@ import { faultsSpi } from './faults/spi';
 import { faultsUart } from './faults/uart';
 import { faultsWs2812 } from './faults/ws2812';
 import { gotchas } from './concepts/gotchas';
+import { numbers } from './concepts/numbers';
+import { timingDiagrams } from './concepts/timing-diagrams';
+import { connecting } from './hardware/connecting';
+import { debugMethod } from './hardware/debug-method';
+import { mixedVoltages } from './hardware/mixed-voltages';
+import { openDrain } from './hardware/open-drain';
+import { safeProbing } from './hardware/safe-probing';
+import { timeYourCode } from './hardware/time-your-code';
+import { unknownBoard } from './hardware/unknown-board';
 import { howItWorks } from './concepts/how-it-works';
 import { limits } from './concepts/limits';
 import { memoryDepth } from './concepts/memory-depth';
 import { triggers } from './concepts/triggers';
 import { vocabulary } from './concepts/vocabulary';
 import { voltageLevels } from './concepts/voltage-levels';
+import { atAGlance } from './protocols/at-a-glance';
 import { decoderGarbage } from './protocols/decoder-garbage';
+import { decoders } from './protocols/decoders';
 import { i2c } from './protocols/i2c';
 import { irRemote } from './protocols/ir-remote';
 import { onewire } from './protocols/onewire';
@@ -56,7 +67,9 @@ export const lessons: Lesson[] = [
   howItWorks,
   voltageLevels,
   vocabulary,
+  numbers,
   triggers,
+  timingDiagrams,
   gotchas,
   limits,
   memoryDepth,
@@ -74,6 +87,7 @@ export const lessons: Lesson[] = [
   findOneEvent,
   exportScripting,
   // Protocols, on GP10-GP22.
+  atAGlance,
   uart,
   i2c,
   spi,
@@ -81,6 +95,7 @@ export const lessons: Lesson[] = [
   onewire,
   irRemote,
   quadrature,
+  decoders,
   decoderGarbage,
   sigrokDecoders,
   // Video and input, on GP10-GP19 with the "Video and input" preset.
@@ -99,6 +114,14 @@ export const lessons: Lesson[] = [
   clockAccuracy,
   counterCheck,
   speedTest,
+  // On real hardware: probing circuits other than the bench. Reading only.
+  safeProbing,
+  connecting,
+  openDrain,
+  mixedVoltages,
+  unknownBoard,
+  debugMethod,
+  timeYourCode,
 ];
 
 export function lessonById(id: string): Lesson | undefined {

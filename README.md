@@ -32,12 +32,13 @@ On the hotspot the guide runs on your phone, so it can sit next to the analyzer:
 
 | Track | Lessons |
 |---|---|
-| Concepts | How a logic analyzer works, voltage levels and thresholds (3.3V, 5V, VREF), the words analyzers use, triggers, common gotchas, what a logic analyzer can't show you, memory depth and long captures |
+| Concepts | How a logic analyzer works, voltage levels and thresholds (3.3V, 5V, VREF), the words analyzers use, bits, bytes and hex, triggers, reading a datasheet timing diagram, common gotchas, what a logic analyzer can't show you, memory depth and long captures |
 | Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers, checking whether a board is alive, switch bounce, identifying an unknown signal, timing between two signals, finding one event in a long recording, exporting and scripting |
-| Protocols | UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder, what wrong decoder settings look like, and (optional) stacked sigrok decoders |
+| Protocols | Protocols at a glance, UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder, protocol decoders, what wrong decoder settings look like, and (optional) stacked sigrok decoders |
 | Video and input | VGA video timing, an NES controller, a PS/2 keyboard (with the Video and input preset) |
 | Find the bug | UART with a slow sender, a framing and a parity error; I²C clock stretching and a refused write; SPI cut short and in the wrong mode; a marginal WS2812 bit; 1-Wire with no device and a bad CRC; glitch hunting (with the Faults preset) |
 | Verify | Sanity check of every analyzer input with a pass/fail checklist, clock accuracy in ppm, every input and the skew between them, and how fast your analyzer really goes (with the Verify preset) |
+| On real hardware | Reading only, no bench needed: probing safely (ground loops, mains, slipping clips), connecting to a real board, open-drain buses and pull-ups, mixed voltages and level shifters, finding signals on an unknown board, a method for debugging, timing your own code with a spare pin |
 
 Every lesson needs at most **8 inputs** and **24 MS/s**, so even the cheapest USB analyzers can follow all of them. Signals are named by Pico pin (GP0, GP10...) rather than analyzer channel, and every expected waveform in the guide is computed from the same configuration the firmware uses, so the guide and the board can't disagree.
 
@@ -366,7 +367,7 @@ npm --prefix web test
 
 ## Working on the web guide
 
-The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 90 KB gzipped).
+The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 110 KB gzipped).
 
 ```bash
 npm --prefix web ci
@@ -462,5 +463,6 @@ AGENTS.md                 development conventions
 - The Commodore IEC serial bus on the pins the Video and input preset leaves free
 - Protocol settings (baud rate, bus speed, message) adjustable from the guide
 - More signals to learn from: CAN, servo PWM, I2S audio, simulated Commodore 64 bus traffic
-- Named signal presets for the Verify track (for example a 24-input channel and skew test)
+- A "System" preset where one interrupt sets off traffic on several buses, for following cause and effect and measuring worst-case latency
+- A "Challenge" preset with settings picked at every boot, so identifying an unknown bus cannot be memorized
 - A small USB drive next to the serial port, with `WIFI.TXT` to set the network before first boot and `STATUS.TXT` showing the IP address
