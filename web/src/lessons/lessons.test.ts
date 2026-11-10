@@ -12,7 +12,7 @@ describe('lessons', () => {
   });
 
   it('cover every protocol, one lesson each, before any lesson across protocols', () => {
-    const ids = lessons.filter((l) => l.track === 'protocols').map((l) => l.id);
+    const ids = lessons.filter((l) => l.track === 'protocols' && l.parts.length > 0).map((l) => l.id);
     expect(ids.slice(0, 7)).toEqual(['uart', 'i2c', 'spi', 'ws2812', 'onewire', 'ir-remote', 'quadrature']);
   });
 
@@ -30,6 +30,10 @@ describe('lessons', () => {
     for (const l of lessons) expect(l.track === 'video').toBe(l.preset === 'video');
     for (const l of lessons) expect(l.track === 'faults').toBe(l.preset === 'faults');
     expect(lessons.filter((l) => l.track === 'video').map((l) => l.id)).toEqual(['vga', 'nes-controller', 'ps2-keyboard']);
+  });
+
+  it('keep the real hardware track reading only, since it uses no bench signals', () => {
+    for (const l of lessons.filter((x) => x.track === 'hardware')) expect(l.parts).toEqual([]);
   });
 
   it('start with the concepts track', () => {

@@ -58,6 +58,8 @@ function Nav({ route, open }: { route: string; open: boolean }) {
       {track('faults')}
       <div class="nav-group">Verify</div>
       {track('verify')}
+      <div class="nav-group">On real hardware</div>
+      {track('hardware')}
       <div class="nav-group">Settings</div>
       {link('/wifi', 'Wi-Fi')}
       {link('/preset', 'Signal preset')}

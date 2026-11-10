@@ -16,6 +16,13 @@ Work we plan to do, roughly in priority order within each section. The README's 
   - Probably needs a small `optional` flag on `Lesson` so the list and the lesson page can show it, plus a lesson test that no other lesson links to it as a prerequisite.
   - Content: what a decoder is (a script that reads the channels you assign it), assigning channels and options, stacking decoders (UART into a higher-level decoder, I²C into a device decoder), and reading the annotation rows. Practice on the protocols the bench already plays.
   - Still analyzer neutral: no menu names, describe the steps in plain terms.
+- [x] **Protocol decoders, for everyone.** A general lesson before the optional sigrok one: what a decoder does, stacking, the families most software uses (sigrok, vendors' own, scope decode, none), and why reading by hand still matters.
+- [x] **Reading-only theory lessons.** Bits, bytes and hex (bit order, ASCII, endianness, two's complement), reading a datasheet timing diagram, and protocols at a glance (including CAN, RS-485, I2S and SWD, with where to probe them).
+- [x] **On real hardware track.** Reading only: safe probing (ground loops, mains, slipping clips, back-powering), connecting to a real board, open-drain buses and pull-ups, mixed voltages and level shifters, finding signals on an unknown board, a method for debugging, and timing your own code with a spare pin.
+- [ ] **Measuring over many events.** Export a long capture and script a histogram of a delay (for example UART reply delay or the IRQ to response time once the System preset exists), to teach worst case and jitter instead of one measurement.
+- [ ] **Protocol-aware triggers.** "Trigger on I²C address 0x49" and similar, described neutrally, with an edge-trigger fallback for analyzers without them.
+- [ ] **A capstone per track.** One unguided capture at the end of each track that combines its skills, answered in collapsed questions.
+- [ ] **More real hardware lessons.** Candidates: reading a schematic for the signals you need, sniffing a serial console at boot step by step, when to use a scope or a multimeter instead, and building a cheap probe harness.
 
 ## Verify track
 
@@ -38,6 +45,8 @@ For people building or checking their own analyzer.
 - [ ] **Commodore IEC serial bus** on GP20-GP22, the pins the Video and input preset leaves free. Left out of 0.5.0 because the handshake is easy to simulate wrongly.
 - [ ] **Protocol settings from the guide.** A few validated choices per protocol (for example a baud rate from a list), not free-form values.
 - [ ] **More signals:** CAN, servo PWM, I2S audio, simulated Commodore 64 bus traffic.
+- [ ] **"System" preset: one event, several buses.** An interrupt line fires, a simulated MCU reads a sensor over I²C, updates LEDs over WS2812 and logs over UART, with a varying (sometimes slow) response. Lessons on following cause and effect across buses, measuring latency and its worst case, and finding which bus makes the slow events slow.
+- [ ] **"Challenge" preset.** Settings picked at boot from a seed (baud rate, SPI mode, I²C address, message); the learner identifies the protocol, settings and content, and the guide checks the typed answer against the seed. Needs protocol settings from the guide first. Captures stay manual; only the answer is checked.
 - [ ] **USB drive next to the serial port,** with `WIFI.TXT` to set the network before first boot and `STATUS.TXT` showing the IP address.
 
 GP27 and GP28 are the only free pins. Anything that does not fit a timeline preset needs one of them.
