@@ -1556,3 +1556,22 @@ a.eyebrow:hover {
   color: var(--muted);
   font-size: 0.93rem;
 }
+
+/* ---------- Capstones ---------- */
+
+details.worked {
+  margin: 1rem 0 0;
+  padding: 10px 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+details.worked > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+details.worked[open] > summary {
+  margin-bottom: 1rem;
+}

@@ -175,6 +175,22 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
             <h1>{lesson.title}</h1>
             <p class="lede">{lesson.summary}</p>
           </header>
+          {lesson.capstone && (
+            <aside class="optional-banner">
+              {lesson.parts.length > 0 ? (
+                <>
+                  <strong>Capstone.</strong> The end of the track: no settings and no pictures, only the task. Choose
+                  the sample rate, length and trigger yourself, using what the track taught. Each part has one worked
+                  way to set up the capture, collapsed, and the answers are in the questions at the end.
+                </>
+              ) : (
+                <>
+                  <strong>Capstone.</strong> The end of the track: a case to work through with what the track taught.
+                  Answer each question yourself before you open it.
+                </>
+              )}
+            </aside>
+          )}
           {lesson.optional && (
             <aside class="optional-banner">
               <strong>Optional lesson.</strong> <Rich text={lesson.optional} />
@@ -207,20 +223,42 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
                   <Rich text={part.intro} />
                 </p>
               )}
-              <div class="part-grid">
-                <ol class="steps">
-                  {part.steps.map((s) => (
-                    <li key={s}>
-                      <Rich text={s} />
-                    </li>
-                  ))}
-                </ol>
-                <SettingsCard settings={part.settings} />
-              </div>
-              {part.views.length > 0 && (
+              {lesson.capstone ? (
+                // A capstone leaves the settings to the reader; one worked way to do it waits behind a click.
                 <>
-                  <h3>What you should see</h3>
-                  <ViewTabs key={part.title} gpios={part.settings.gpios} views={part.views} />
+                  <ol class="steps">
+                    {part.steps.map((s) => (
+                      <li key={s}>
+                        <Rich text={s} />
+                      </li>
+                    ))}
+                  </ol>
+                  <details class="worked">
+                    <summary>One way to capture it (open once you have tried)</summary>
+                    <SettingsCard settings={part.settings} />
+                    {part.views.length > 0 && (
+                      <ViewTabs key={part.title} gpios={part.settings.gpios} views={part.views} />
+                    )}
+                  </details>
+                </>
+              ) : (
+                <>
+                  <div class="part-grid">
+                    <ol class="steps">
+                      {part.steps.map((s) => (
+                        <li key={s}>
+                          <Rich text={s} />
+                        </li>
+                      ))}
+                    </ol>
+                    <SettingsCard settings={part.settings} />
+                  </div>
+                  {part.views.length > 0 && (
+                    <>
+                      <h3>What you should see</h3>
+                      <ViewTabs key={part.title} gpios={part.settings.gpios} views={part.views} />
+                    </>
+                  )}
                 </>
               )}
             </section>

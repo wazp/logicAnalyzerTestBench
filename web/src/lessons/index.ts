@@ -7,6 +7,7 @@
 // every lesson listed here.
 
 import { aliasing } from './basics/aliasing';
+import { learnCapstone } from './basics/capstone';
 import { captureWindowLesson } from './basics/capture-window';
 import { dutyCycle } from './basics/duty-cycle';
 import { exportScripting } from './basics/export-scripting';
@@ -26,17 +27,21 @@ import { faultsUart } from './faults/uart';
 import { faultsWs2812 } from './faults/ws2812';
 import { decoderGarbage } from './decoders/decoder-garbage';
 import { decoders } from './decoders/decoders';
+import { protocolTriggers } from './decoders/protocol-triggers';
 import { sigrokDecoders } from './decoders/sigrok-decoders';
 import { gotchas } from './concepts/gotchas';
 import { numbers } from './concepts/numbers';
 import { timingDiagrams } from './concepts/timing-diagrams';
+import { hardwareCapstone } from './hardware/capstone';
 import { connecting } from './hardware/connecting';
 import { debugMethod } from './hardware/debug-method';
 import { mixedVoltages } from './hardware/mixed-voltages';
 import { openDrain } from './hardware/open-drain';
 import { safeProbing } from './hardware/safe-probing';
+import { schematic } from './hardware/schematic';
 import { timeYourCode } from './hardware/time-your-code';
 import { unknownBoard } from './hardware/unknown-board';
+import { whichTool } from './hardware/which-tool';
 import { howItWorks } from './concepts/how-it-works';
 import { limits } from './concepts/limits';
 import { memoryDepth } from './concepts/memory-depth';
@@ -44,6 +49,7 @@ import { triggers } from './concepts/triggers';
 import { vocabulary } from './concepts/vocabulary';
 import { voltageLevels } from './concepts/voltage-levels';
 import { atAGlance } from './protocols/at-a-glance';
+import { protocolsCapstone } from './protocols/capstone';
 import { i2c } from './protocols/i2c';
 import { irRemote } from './protocols/ir-remote';
 import { onewire } from './protocols/onewire';
@@ -88,6 +94,7 @@ export const lessons: Lesson[] = [
   timingBetween,
   findOneEvent,
   exportScripting,
+  learnCapstone,
   // Protocols, on GP10-GP22.
   atAGlance,
   uart,
@@ -97,8 +104,10 @@ export const lessons: Lesson[] = [
   onewire,
   irRemote,
   quadrature,
+  protocolsCapstone,
   // Decoders: what they do, using them, and what wrong settings look like. On GP10-GP17.
   decoders,
+  protocolTriggers,
   sigrokDecoders,
   decoderGarbage,
   // Video and input, on GP10-GP19 with the "Video and input" preset.
@@ -119,12 +128,15 @@ export const lessons: Lesson[] = [
   speedTest,
   // On real hardware: probing circuits other than the bench. Reading only.
   safeProbing,
+  whichTool,
+  schematic,
   connecting,
   openDrain,
   mixedVoltages,
   unknownBoard,
   debugMethod,
   timeYourCode,
+  hardwareCapstone,
 ];
 
 /** The first lesson in guide order not marked as done: where the reader continues. */
