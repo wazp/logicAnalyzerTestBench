@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { ThemeToggle } from './components/ThemeToggle';
 import { useProgress } from './components/useProgress';
 import { lessonById, lessons, nextLesson, tracks, type Lesson, type TrackId } from './lessons';
 import { getStatus } from './model/device';
@@ -60,12 +61,15 @@ function Nav({ route, open, lesson }: { route: string; open: boolean; lesson: Le
   );
   return (
     <nav id="sidebar" class={open ? 'sidebar open' : 'sidebar'}>
-      <a class="brand" href="#/">
-        <svg viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M1 12h3V4h4v8h3V4h4" />
-        </svg>
-        Test Bench
-      </a>
+      <div class="brand-row">
+        <a class="brand" href="#/">
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M1 12h3V4h4v8h3V4h4" />
+          </svg>
+          Test Bench
+        </a>
+        <ThemeToggle />
+      </div>
       {link('/', 'Start here')}
       {next && (
         <a class="nav-continue" href={`#/lesson/${next.id}`}>
@@ -73,7 +77,7 @@ function Nav({ route, open, lesson }: { route: string; open: boolean; lesson: Le
           {next.title}
         </a>
       )}
-      {tracks.map(({ id, label }) => {
+      {tracks.map(({ id, label, short }) => {
         const members = lessons.filter((l) => l.track === id);
         const count = members.filter((l) => done.has(l.id)).length;
         const isOpen = expanded.has(id);
@@ -87,7 +91,7 @@ function Nav({ route, open, lesson }: { route: string; open: boolean; lesson: Le
               onClick={() => toggle(id)}
             >
               <span class="nav-chevron" aria-hidden="true" />
-              {label}
+              {short ?? label}
               <span class="nav-count" title={`${count} of ${members.length} marked as done`}>
                 {count}/{members.length}
               </span>
@@ -178,6 +182,7 @@ export function App() {
           </svg>
           Test Bench
         </a>
+        <ThemeToggle />
       </header>
       <div class={drawerOpen ? 'backdrop open' : 'backdrop'} onClick={() => setDrawerOpen(false)} />
       <Nav route={route} open={drawerOpen} lesson={lesson} />

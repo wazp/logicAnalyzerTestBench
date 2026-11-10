@@ -1,4 +1,5 @@
-/* Design tokens. Light by default, dark when the OS prefers it.
+/* Design tokens. Light by default, dark with data-theme="dark" on <html>, which a script in index.html sets
+   before the first paint from the reader's choice or the OS preference (src/model/theme.ts).
    No web fonts: the page is served offline from the Pico. */
 :root {
   --bg: #f7f8fa;
@@ -33,39 +34,38 @@
   --radius: 8px;
   --font: system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1215;
-    --surface: #171b20;
-    --surface-2: #1f242b;
-    --text: #e6e9ed;
-    --muted: #98a2ae;
-    --border: #2c333b;
-    --accent: #3ccf8e;
-    --accent-text: #08130d;
-    --warn-bg: #2b2412;
-    --warn-border: #a37b1c;
-    --pass: #3ccf8e;
-    --fail: #ff6b6b;
-    --code-bg: #232931;
-    --trigger: #ff6b6b;
-    --board: #1f4f35;
-    --board-text: #cfe9da;
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0f1215;
+  --surface: #171b20;
+  --surface-2: #1f242b;
+  --text: #e6e9ed;
+  --muted: #98a2ae;
+  --border: #2c333b;
+  --accent: #3ccf8e;
+  --accent-text: #08130d;
+  --warn-bg: #2b2412;
+  --warn-border: #a37b1c;
+  --pass: #3ccf8e;
+  --fail: #ff6b6b;
+  --code-bg: #232931;
+  --trigger: #ff6b6b;
+  --board: #1f4f35;
+  --board-text: #cfe9da;
 
-    --ch1: #ff6b6b;
-    --ch2: #ff922b;
-    --ch3: #fcc419;
-    --ch4: #51cf66;
-    --ch5: #3bc9db;
-    --ch6: #4dabf7;
-    --ch7: #9775fa;
-    --ch8: #f06595;
-    --ch9: #a9e34b;
-    --ch10: #d4a373;
-  }
+  --ch1: #ff6b6b;
+  --ch2: #ff922b;
+  --ch3: #fcc419;
+  --ch4: #51cf66;
+  --ch5: #3bc9db;
+  --ch6: #4dabf7;
+  --ch7: #9775fa;
+  --ch8: #f06595;
+  --ch9: #a9e34b;
+  --ch10: #d4a373;
 }
 
 * {
@@ -171,6 +171,56 @@ main {
   font-weight: 700;
   font-size: 1.05rem;
   margin-bottom: 12px;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.brand-row .brand {
+  margin-bottom: 0;
+}
+
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.theme-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.topbar .theme-toggle {
+  margin-left: auto;
+}
+
+/* The drawer has its own toggle in the brand row; one is enough while it is open. */
+.drawer-open .topbar .theme-toggle {
+  visibility: hidden;
 }
 
 .brand svg {

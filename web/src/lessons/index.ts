@@ -125,15 +125,15 @@ export const lessons: Lesson[] = [
   timeYourCode,
 ];
 
-/** The tracks in guide order, with the name the sidebar and lesson pages show. */
-export const tracks: { id: TrackId; label: string }[] = [
+/** The tracks in guide order, with the name lesson pages show, and a shorter one for the sidebar where needed. */
+export const tracks: { id: TrackId; label: string; short?: string }[] = [
   { id: 'concepts', label: 'Concepts' },
   { id: 'learn', label: 'Learn' },
   { id: 'protocols', label: 'Protocols' },
   { id: 'decoders', label: 'Decoders' },
   { id: 'video', label: 'Video and input' },
   { id: 'faults', label: 'Find the bug' },
-  { id: 'verify', label: 'Verify your analyzer' },
+  { id: 'verify', label: 'Verify your analyzer', short: 'Verify' },
   { id: 'hardware', label: 'On real hardware' },
 ];
 
