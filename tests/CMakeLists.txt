@@ -142,3 +142,28 @@ add_test(NAME verify_json_export COMMAND export_verify ${CMAKE_CURRENT_BINARY_DI
 add_test(NAME verify_json_up_to_date
     COMMAND ${CMAKE_COMMAND} -E compare_files ${CMAKE_CURRENT_BINARY_DIR}/verify.json ${VERIFY_JSON})
 set_tests_properties(verify_json_up_to_date PROPERTIES DEPENDS verify_json_export)
+
+# Exports a preset's whole timeline frame, as the board plays it, for
+# tools/bench_check.py. Not committed and not compared; the checker runs it.
+#   ./build-tests/export_frame faults /tmp/faults-frame.json
+add_executable(export_frame
+    ${CMAKE_CURRENT_LIST_DIR}/../tools/export_frame.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/timeline.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocol_frame.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/video_frame.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/faults_frame.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/verify_frame.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/uart.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/i2c.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/spi.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/ws2812.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/onewire.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/nec.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/quadrature.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/vga.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/nes.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../src/core/protocols/ps2.cpp
+)
+target_include_directories(export_frame PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src)
+target_compile_options(export_frame PRIVATE -Wall -Wextra -Werror)
+add_test(NAME frame_export COMMAND export_frame faults ${CMAKE_CURRENT_BINARY_DIR}/faults-frame.json)

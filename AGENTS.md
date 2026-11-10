@@ -65,6 +65,17 @@ cmake -S . -B build -G Ninja && cmake --build build
 
 All three must pass, and the firmware build must produce **no warnings** from files in `src/` (`-Wall -Wextra` is on for our sources). Hardware behavior cannot be verified without a board and analyzer; say so explicitly when a change is untested on hardware.
 
+### Checking a real board
+
+With a test bench and a gusmanb LogicAnalyzer on USB (analyzer channel N wired to GPN for GP0-GP22, channel 23 to GP26), `tools/bench_check.py` checks the real output against the firmware's own model. It switches presets through the console, captures with the analyzer's `TerminalCapture` tool, and compares every sample, edge time and transaction edge count with the frame `build-tests/export_frame` builds from the same code. Flash the build first (`cp build/logic_test_bench.uf2` to the board in BOOTSEL; opening its console at 1200 baud reboots it into BOOTSEL).
+
+```bash
+tools/bench_check.py                 # all presets and GP0-GP9/GP26, about 10 minutes
+tools/bench_check.py faults verify   # only these
+```
+
+It needs `pyserial`. Report what it covered: captures land wherever the analyzer triggers, so the output lists the edges and transactions verified, and a rare event can stay uncovered without failing. Analyzer limits it works around: at most 100 MS/s, rates that divide 100 MHz (others run a few hundred ppm off), 90k samples when any channel above 7 is used (390k otherwise), a pre-trigger part of about a tenth of that, and zero padding before the trigger when it fires early.
+
 ## Code style
 
 - 4-space indent, 120 column limit, braces on the same line.
