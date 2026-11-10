@@ -33,13 +33,13 @@ On the hotspot the guide runs on your phone, so it can sit next to the analyzer:
 | Track | Lessons |
 |---|---|
 | Concepts | How a logic analyzer works, voltage levels and thresholds (3.3V, 5V, VREF), the words analyzers use, bits, bytes and hex, triggers, reading a datasheet timing diagram, common gotchas, what a logic analyzer can't show you, memory depth and long captures |
-| Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers, checking whether a board is alive, switch bounce, identifying an unknown signal, timing between two signals, finding one event in a long recording, exporting and scripting |
-| Protocols | Protocols at a glance, UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder |
-| Decoders | What protocol decoders do and which ones your software may have, (optional) stacked sigrok decoders, what wrong decoder settings look like |
+| Learn | First capture, sample rate and aliasing, the capture window, measuring duty cycle, catching a short pulse, smarter triggers, checking whether a board is alive, switch bounce, identifying an unknown signal, timing between two signals, finding one event in a long recording, exporting and scripting, and a capstone: a datasheet for the bench, with settings you choose yourself |
+| Protocols | Protocols at a glance, UART, I²C, SPI, WS2812 LEDs, 1-Wire, IR remote (NEC), quadrature encoder, and a capstone: seven unlabeled pins to identify and read |
+| Decoders | What protocol decoders do and which ones your software may have, triggering on a protocol event (and how to without a protocol trigger), (optional) stacked sigrok decoders, what wrong decoder settings look like |
 | Video and input | VGA video timing, an NES controller, a PS/2 keyboard (with the Video and input preset) |
 | Find the bug | UART with a slow sender, a framing and a parity error; I²C clock stretching and a refused write; SPI cut short and in the wrong mode; a marginal WS2812 bit; 1-Wire with no device and a bad CRC; glitch hunting (with the Faults preset) |
 | Verify | Sanity check of every analyzer input with a pass/fail checklist, clock accuracy in ppm, every input and the skew between them, and how fast your analyzer really goes (with the Verify preset) |
-| On real hardware | Reading only, no bench needed: probing safely (ground loops, mains, slipping clips), connecting to a real board, open-drain buses and pull-ups, mixed voltages and level shifters, finding signals on an unknown board, a method for debugging, timing your own code with a spare pin |
+| On real hardware | Reading only, no bench needed: probing safely (ground loops, mains, slipping clips), analyzer, scope or multimeter, reading a schematic for the signals you need, connecting to a real board, open-drain buses and pull-ups, mixed voltages and level shifters, finding signals on an unknown board, a method for debugging, timing your own code with a spare pin, and a capstone case from symptom to fix |
 
 The lessons are grouped by track in the guide's sidebar, each with an overview page, and a search box finds lessons by title or topic. Mark a lesson as done and the guide keeps your place: the home page and sidebar link to the first lesson you have not done yet. The marks stay in your browser only.
 
@@ -370,7 +370,7 @@ npm --prefix web test
 
 ## Working on the web guide
 
-The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 110 KB gzipped).
+The guide is a small [Preact](https://preactjs.com/) + TypeScript app in `web/`, built by Vite into a single `index.html` with everything inlined (about 125 KB gzipped).
 
 ```bash
 npm --prefix web ci

@@ -72,6 +72,7 @@ export function TrackPage({ track }: { track: Track }) {
           <li key={l.id} class={done.has(l.id) ? 'done' : ''}>
             <a href={`#/lesson/${l.id}`}>{l.title}</a>
             {l.optional && <span class="nav-tag">optional</span>}
+            {l.capstone && <span class="nav-tag">capstone</span>}
             {l.parts.length === 0 && <span class="nav-tag">reading</span>}
             {done.has(l.id) && (
               <span class="nav-done" aria-label="done" title="Marked as done">

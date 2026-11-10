@@ -73,6 +73,7 @@ function Nav({ route, open, page }: { route: string; open: boolean; page: Page }
     <a href={`#${href}`} class={route === href ? 'active' : ''} aria-current={route === href ? 'page' : undefined}>
       {label}
       {lesson?.optional && <span class="nav-tag">optional</span>}
+      {lesson?.capstone && <span class="nav-tag">capstone</span>}
       {lesson && done.has(lesson.id) && (
         <span class="nav-done" aria-label="done" title="Marked as done">
           ✓

@@ -20,9 +20,10 @@ Work we plan to do, roughly in priority order within each section. The README's 
 - [x] **Reading-only theory lessons.** Bits, bytes and hex (bit order, ASCII, endianness, two's complement), reading a datasheet timing diagram, and protocols at a glance (including CAN, RS-485, I2S and SWD, with where to probe them).
 - [x] **On real hardware track.** Reading only: safe probing (ground loops, mains, slipping clips, back-powering), connecting to a real board, open-drain buses and pull-ups, mixed voltages and level shifters, finding signals on an unknown board, a method for debugging, and timing your own code with a spare pin.
 - [ ] **Measuring over many events.** Export a long capture and script a histogram of a delay (for example UART reply delay or the IRQ to response time once the System preset exists), to teach worst case and jitter instead of one measurement.
-- [ ] **Protocol-aware triggers.** "Trigger on I²C address 0x49" and similar, described neutrally, with an edge-trigger fallback for analyzers without them.
-- [ ] **A capstone per track.** One unguided capture at the end of each track that combines its skills, answered in collapsed questions.
-- [ ] **More real hardware lessons.** Candidates: reading a schematic for the signals you need, sniffing a serial console at boot step by step, when to use a scope or a multimeter instead, and building a cheap probe harness.
+- [x] **Protocol-aware triggers.** "Trigger on I²C address 0x49" and similar, described neutrally, with an edge-trigger fallback for analyzers without them.
+- [x] **A capstone per track.** One unguided capture at the end of each track that combines its skills, answered in collapsed questions. Done for Learn, Protocols and On real hardware (a case study). Find the bug and Verify are exercises already; Concepts, Decoders and Video and input are short enough that a capstone would repeat their lessons.
+- [x] **More real hardware lessons:** reading a schematic for the signals you need, and analyzer, scope or multimeter.
+- [ ] **Still more real hardware lessons.** Candidates: sniffing a serial console at boot step by step, and building a cheap probe harness.
 
 ## Verify track
 
@@ -53,6 +54,8 @@ GP27 and GP28 are the only free pins. Anything that does not fit a timeline pres
 
 ## Guide
 
+- [x] **Collapsible tracks, track overview pages, search, a Continue link and a light/dark switch.**
+- [ ] **Progress on the board.** Done marks live in each browser and each address (IP, .local name, hotspot) separately. Storing them on the Pico would share them; a copy and paste code would be the web-only alternative.
 - [x] **Progress tracking.** A checkmark per finished lesson, stored in the browser (localStorage), shown in the lesson list. Must keep working when storage is unavailable.
 
 ## Hardware checks

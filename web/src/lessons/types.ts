@@ -63,7 +63,7 @@ export interface Section {
   code?: string;
 }
 
-/** The guide's tracks, in order; `tracks` in index.ts gives their names. */
+/** The guide's tracks, in order; `tracks` in tracks.ts gives their names. */
 export type TrackId = 'concepts' | 'learn' | 'protocols' | 'decoders' | 'video' | 'faults' | 'verify' | 'hardware';
 
 export interface Lesson {
@@ -73,6 +73,11 @@ export interface Lesson {
   preset?: PresetId;
   /** Finding out what the pins carry is the exercise: the page hides their names, and parts show no waveforms. */
   mystery?: boolean;
+  /**
+   * The unguided exercise at the end of its track: the page shows each part's steps, and hides its settings and
+   * views in a collapsed worked example. Its answers go in the questions.
+   */
+  capstone?: boolean;
   /**
    * Set for a lesson not everyone can follow (it needs a feature some analyzer software lacks): who can skip
    * it, shown at the top of the lesson. The lesson list tags it as optional, and no other lesson may rely on it.

@@ -45,9 +45,18 @@ describe('lessons', () => {
     expect(order).toEqual(tracks.map((t) => t.id));
   });
 
+  it('end a track with its capstone, which has answers to check against', () => {
+    for (const l of lessons.filter((x) => x.capstone)) {
+      const track = lessons.filter((x) => x.track === l.track);
+      expect(track[track.length - 1]).toBe(l);
+      expect(l.questions.length).toBeGreaterThan(0);
+    }
+  });
+
   it('introduce decoders before showing what wrong settings do', () => {
     expect(lessons.filter((l) => l.track === 'decoders').map((l) => l.id)).toEqual([
       'decoders',
+      'protocol-triggers',
       'sigrok-decoders',
       'decoder-garbage',
     ]);
