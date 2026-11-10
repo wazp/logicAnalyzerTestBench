@@ -1,11 +1,11 @@
-// Protocols track: what protocol decoders are, the families of them that analyzer software uses, and how
+// Decoders track: what protocol decoders are, the families of them that analyzer software uses, and how
 // to use them without being misled. For every reader; software specifics stay out. Reading only.
 
 import type { Lesson } from '../types';
 
 export const decoders: Lesson = {
   id: 'decoders',
-  track: 'protocols',
+  track: 'decoders',
   title: 'Protocol decoders',
   summary: 'What a decoder does, the decoder families most analyzer software uses, stacking, and why reading by hand still matters.',
   gpios: [],
@@ -16,7 +16,7 @@ export const decoders: Lesson = {
       title: 'What a decoder does',
       body: [
         'A decoder reads the sampled inputs you assign to it and applies the rules of one protocol: where a byte starts, which edge to sample, where the address and data are. It shows its results as annotations above or below the waveform, and usually as a table you can search and export.',
-        'It knows nothing you do not tell it. A UART decoder with the wrong baud rate, or an SPI decoder in the wrong mode, produces confident-looking nonsense. That is why the "When the decoder shows garbage" lesson follows this one.',
+        'It knows nothing you do not tell it. A UART decoder with the wrong baud rate, or an SPI decoder in the wrong mode, produces confident-looking nonsense. The "When the decoder shows garbage" lesson at the end of this track shows the common mistakes on purpose.',
       ],
     },
     {

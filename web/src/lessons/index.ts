@@ -2,7 +2,7 @@
 // written out here rather than discovered from the files.
 //
 // To add a lesson: create one file exporting a `Lesson` in concepts/,
-// basics/, protocols/, video/, faults/, verify/ or hardware/ (shared building blocks are in helpers.ts, the shapes
+// basics/, protocols/, decoders/, video/, faults/, verify/ or hardware/ (shared building blocks are in helpers.ts, the shapes
 // in types.ts), then add it to this list. The tests in lessons.test.ts check
 // every lesson listed here.
 
@@ -24,6 +24,9 @@ import { faultsOnewire } from './faults/onewire';
 import { faultsSpi } from './faults/spi';
 import { faultsUart } from './faults/uart';
 import { faultsWs2812 } from './faults/ws2812';
+import { decoderGarbage } from './decoders/decoder-garbage';
+import { decoders } from './decoders/decoders';
+import { sigrokDecoders } from './decoders/sigrok-decoders';
 import { gotchas } from './concepts/gotchas';
 import { numbers } from './concepts/numbers';
 import { timingDiagrams } from './concepts/timing-diagrams';
@@ -41,16 +44,14 @@ import { triggers } from './concepts/triggers';
 import { vocabulary } from './concepts/vocabulary';
 import { voltageLevels } from './concepts/voltage-levels';
 import { atAGlance } from './protocols/at-a-glance';
-import { decoderGarbage } from './protocols/decoder-garbage';
-import { decoders } from './protocols/decoders';
 import { i2c } from './protocols/i2c';
 import { irRemote } from './protocols/ir-remote';
 import { onewire } from './protocols/onewire';
 import { quadrature } from './protocols/quadrature';
-import { sigrokDecoders } from './protocols/sigrok-decoders';
 import { spi } from './protocols/spi';
 import { uart } from './protocols/uart';
 import { ws2812 } from './protocols/ws2812';
+import { trackLabel } from './tracks';
 import type { Lesson } from './types';
 import { clockAccuracy } from './verify/clock-accuracy';
 import { counterCheck } from './verify/counter';
@@ -60,7 +61,8 @@ import { nesController } from './video/nes';
 import { ps2Keyboard } from './video/ps2';
 import { vgaLesson } from './video/vga';
 
-export type { Check, FactTable, Figure, Lesson, Part, Question, Section, View } from './types';
+export { trackById, trackLabel, tracks, type Track } from './tracks';
+export type { Check, FactTable, Figure, Lesson, Part, Question, Section, TrackId, View } from './types';
 
 export const lessons: Lesson[] = [
   // Concepts: how analyzers work, for any analyzer.
@@ -95,9 +97,10 @@ export const lessons: Lesson[] = [
   onewire,
   irRemote,
   quadrature,
+  // Decoders: what they do, using them, and what wrong settings look like. On GP10-GP17.
   decoders,
-  decoderGarbage,
   sigrokDecoders,
+  decoderGarbage,
   // Video and input, on GP10-GP19 with the "Video and input" preset.
   vgaLesson,
   nesController,
@@ -123,6 +126,36 @@ export const lessons: Lesson[] = [
   debugMethod,
   timeYourCode,
 ];
+
+/** The first lesson in guide order not marked as done: where the reader continues. */
+export function nextLesson(done: Set<string>): Lesson | undefined {
+  return lessons.find((l) => !done.has(l.id));
+}
+
+/**
+ * Where to go after finishing `from`: the next lesson after it not marked as done, else the first unfinished
+ * one before it. Undefined once every other lesson is done.
+ */
+export function nextUnfinished(from: Lesson, done: Set<string>): Lesson | undefined {
+  const i = lessons.indexOf(from);
+  const open = (l: Lesson) => l !== from && !done.has(l.id);
+  return lessons.slice(i + 1).find(open) ?? lessons.slice(0, i).find(open);
+}
+
+/**
+ * The lessons matching a search, in guide order: every word must appear in the title, summary or track name,
+ * ignoring case. An empty search matches nothing.
+ */
+export function searchLessons(query: string): Lesson[] {
+  // NFKD turns "I²C" into "I2C", so typing "i2c" finds it.
+  const fold = (t: string) => t.normalize('NFKD').toLowerCase();
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  return lessons.filter((l) => {
+    const text = fold(`${l.title} ${l.summary} ${trackLabel(l.track)}`);
+    return words.every((w) => text.includes(w));
+  });
+}
 
 export function lessonById(id: string): Lesson | undefined {
   return lessons.find((l) => l.id === id);

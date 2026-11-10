@@ -15,7 +15,7 @@ const pins = [scl, sda, sck, mosi, miso, cs];
 
 export const sigrokDecoders: Lesson = {
   id: 'sigrok-decoders',
-  track: 'protocols',
+  track: 'decoders',
   optional:
     "It needs software that runs **sigrok** protocol decoders: PulseView, sigrok-cli, and several analyzers' own apps. If yours has no sigrok decoders, skip it; nothing later depends on it.",
   title: 'Using sigrok protocol decoders',

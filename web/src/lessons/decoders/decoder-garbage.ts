@@ -33,7 +33,7 @@ const mirrorSafe = spiReply.find((b) => reverseBits(b) === b);
 
 export const decoderGarbage: Lesson = {
   id: 'decoder-garbage',
-  track: 'protocols',
+  track: 'decoders',
   title: 'When the decoder shows garbage',
   summary: 'Wrong baud rate, shifted addresses, bit order, SPI mode and swapped lines: what each mistake looks like, on purpose.',
   gpios: pins,

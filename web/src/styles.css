@@ -1,4 +1,5 @@
-/* Design tokens. Light by default, dark when the OS prefers it.
+/* Design tokens. Light by default, dark with data-theme="dark" on <html>, which a script in index.html sets
+   before the first paint from the reader's choice or the OS preference (src/model/theme.ts).
    No web fonts: the page is served offline from the Pico. */
 :root {
   --bg: #f7f8fa;
@@ -33,39 +34,38 @@
   --radius: 8px;
   --font: system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1215;
-    --surface: #171b20;
-    --surface-2: #1f242b;
-    --text: #e6e9ed;
-    --muted: #98a2ae;
-    --border: #2c333b;
-    --accent: #3ccf8e;
-    --accent-text: #08130d;
-    --warn-bg: #2b2412;
-    --warn-border: #a37b1c;
-    --pass: #3ccf8e;
-    --fail: #ff6b6b;
-    --code-bg: #232931;
-    --trigger: #ff6b6b;
-    --board: #1f4f35;
-    --board-text: #cfe9da;
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0f1215;
+  --surface: #171b20;
+  --surface-2: #1f242b;
+  --text: #e6e9ed;
+  --muted: #98a2ae;
+  --border: #2c333b;
+  --accent: #3ccf8e;
+  --accent-text: #08130d;
+  --warn-bg: #2b2412;
+  --warn-border: #a37b1c;
+  --pass: #3ccf8e;
+  --fail: #ff6b6b;
+  --code-bg: #232931;
+  --trigger: #ff6b6b;
+  --board: #1f4f35;
+  --board-text: #cfe9da;
 
-    --ch1: #ff6b6b;
-    --ch2: #ff922b;
-    --ch3: #fcc419;
-    --ch4: #51cf66;
-    --ch5: #3bc9db;
-    --ch6: #4dabf7;
-    --ch7: #9775fa;
-    --ch8: #f06595;
-    --ch9: #a9e34b;
-    --ch10: #d4a373;
-  }
+  --ch1: #ff6b6b;
+  --ch2: #ff922b;
+  --ch3: #fcc419;
+  --ch4: #51cf66;
+  --ch5: #3bc9db;
+  --ch6: #4dabf7;
+  --ch7: #9775fa;
+  --ch8: #f06595;
+  --ch9: #a9e34b;
+  --ch10: #d4a373;
 }
 
 * {
@@ -173,6 +173,77 @@ main {
   margin-bottom: 12px;
 }
 
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  font-size: 0.93rem;
+}
+
+.theme-toggle-label {
+  margin-right: auto;
+}
+
+.theme-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.theme-icon:hover {
+  background: var(--surface-2);
+}
+
+.theme-icon.active {
+  color: var(--accent);
+}
+
+.theme-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The switch: a track with a knob, on the left in light mode and the right in dark mode. */
+.theme-switch {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.theme-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  transition: transform 0.15s ease;
+}
+
+.theme-switch[aria-checked='true'] .theme-knob {
+  transform: translateX(16px);
+}
+
 .brand svg {
   width: 22px;
   height: 22px;
@@ -188,6 +259,88 @@ main {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+/* Each track is a collapsible group: the heading is a button, the lessons a list it shows or hides. */
+button.nav-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 2px 0 0;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.nav-group:hover,
+button.nav-group.open {
+  color: var(--text);
+}
+
+button.nav-group:hover {
+  background: var(--surface-2);
+}
+
+.nav-chevron {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+button.nav-group.open .nav-chevron {
+  transform: rotate(45deg);
+}
+
+.nav-count {
+  margin-left: auto;
+  font-weight: 600;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.nav-lessons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 6px 10px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border);
+}
+
+.nav-lessons[hidden] {
+  display: none;
+}
+
+.nav-heading {
+  margin-top: 20px;
+}
+
+.sidebar a.nav-continue {
+  display: block;
+  margin: 6px 0 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.nav-continue-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
 /* The top bar, hamburger and backdrop only exist on narrow screens. */
@@ -865,7 +1018,7 @@ button.button {
   color: var(--surface);
 }
 
-.wifi-banner {
+.home-banner {
   display: block;
   margin-bottom: 1.5rem;
   padding: 12px 16px;
@@ -1309,4 +1462,97 @@ body:has(.zoom-dialog[open]) {
 .code-block code {
   background: none;
   padding: 0;
+}
+
+/* ---------- Track landing pages ---------- */
+
+a.eyebrow {
+  display: inline-block;
+  text-decoration: none;
+}
+
+a.eyebrow:hover {
+  text-decoration: underline;
+}
+
+.track-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.93rem;
+}
+
+.track-complete {
+  color: var(--pass);
+  font-weight: 600;
+}
+
+.track-lessons {
+  margin: 2rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.track-lessons li {
+  margin: 0 0 1rem;
+  padding-left: 4px;
+}
+
+.track-lessons li > a {
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.track-lessons .nav-tag {
+  margin-right: 6px;
+}
+
+.track-lessons .nav-done {
+  margin-left: 2px;
+}
+
+.track-lessons p {
+  margin: 2px 0 0;
+  font-size: 0.93rem;
+}
+
+/* ---------- Sidebar search ---------- */
+
+.nav-search {
+  width: 100%;
+  margin: 4px 0 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.93rem;
+}
+
+.nav-search:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.nav-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-result-track {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.nav-empty {
+  margin: 6px 10px;
+  color: var(--muted);
+  font-size: 0.93rem;
 }
