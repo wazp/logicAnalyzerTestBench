@@ -169,7 +169,9 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
       <MysteryContext.Provider value={mystery}>
         <article class="lesson">
           <header>
-            <div class="eyebrow">{trackLabel(lesson.track)}</div>
+            <a class="eyebrow" href={`#/track/${lesson.track}`}>
+              {trackLabel(lesson.track)}
+            </a>
             <h1>{lesson.title}</h1>
             <p class="lede">{lesson.summary}</p>
           </header>

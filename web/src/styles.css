@@ -1463,3 +1463,96 @@ body:has(.zoom-dialog[open]) {
   background: none;
   padding: 0;
 }
+
+/* ---------- Track landing pages ---------- */
+
+a.eyebrow {
+  display: inline-block;
+  text-decoration: none;
+}
+
+a.eyebrow:hover {
+  text-decoration: underline;
+}
+
+.track-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.93rem;
+}
+
+.track-complete {
+  color: var(--pass);
+  font-weight: 600;
+}
+
+.track-lessons {
+  margin: 2rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.track-lessons li {
+  margin: 0 0 1rem;
+  padding-left: 4px;
+}
+
+.track-lessons li > a {
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.track-lessons .nav-tag {
+  margin-right: 6px;
+}
+
+.track-lessons .nav-done {
+  margin-left: 2px;
+}
+
+.track-lessons p {
+  margin: 2px 0 0;
+  font-size: 0.93rem;
+}
+
+/* ---------- Sidebar search ---------- */
+
+.nav-search {
+  width: 100%;
+  margin: 4px 0 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.93rem;
+}
+
+.nav-search:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.nav-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-result-track {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.nav-empty {
+  margin: 6px 10px;
+  color: var(--muted);
+  font-size: 0.93rem;
+}

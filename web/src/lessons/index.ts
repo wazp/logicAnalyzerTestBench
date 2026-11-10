@@ -51,7 +51,8 @@ import { quadrature } from './protocols/quadrature';
 import { spi } from './protocols/spi';
 import { uart } from './protocols/uart';
 import { ws2812 } from './protocols/ws2812';
-import type { Lesson, TrackId } from './types';
+import { trackLabel } from './tracks';
+import type { Lesson } from './types';
 import { clockAccuracy } from './verify/clock-accuracy';
 import { counterCheck } from './verify/counter';
 import { sanityCheck } from './verify/sanity-check';
@@ -60,6 +61,7 @@ import { nesController } from './video/nes';
 import { ps2Keyboard } from './video/ps2';
 import { vgaLesson } from './video/vga';
 
+export { trackById, trackLabel, tracks, type Track } from './tracks';
 export type { Check, FactTable, Figure, Lesson, Part, Question, Section, TrackId, View } from './types';
 
 export const lessons: Lesson[] = [
@@ -125,22 +127,6 @@ export const lessons: Lesson[] = [
   timeYourCode,
 ];
 
-/** The tracks in guide order, with the name lesson pages show, and a shorter one for the sidebar where needed. */
-export const tracks: { id: TrackId; label: string; short?: string }[] = [
-  { id: 'concepts', label: 'Concepts' },
-  { id: 'learn', label: 'Learn' },
-  { id: 'protocols', label: 'Protocols' },
-  { id: 'decoders', label: 'Decoders' },
-  { id: 'video', label: 'Video and input' },
-  { id: 'faults', label: 'Find the bug' },
-  { id: 'verify', label: 'Verify your analyzer', short: 'Verify' },
-  { id: 'hardware', label: 'On real hardware' },
-];
-
-export function trackLabel(id: TrackId): string {
-  return tracks.find((t) => t.id === id)?.label ?? id;
-}
-
 /** The first lesson in guide order not marked as done: where the reader continues. */
 export function nextLesson(done: Set<string>): Lesson | undefined {
   return lessons.find((l) => !done.has(l.id));
@@ -154,6 +140,21 @@ export function nextUnfinished(from: Lesson, done: Set<string>): Lesson | undefi
   const i = lessons.indexOf(from);
   const open = (l: Lesson) => l !== from && !done.has(l.id);
   return lessons.slice(i + 1).find(open) ?? lessons.slice(0, i).find(open);
+}
+
+/**
+ * The lessons matching a search, in guide order: every word must appear in the title, summary or track name,
+ * ignoring case. An empty search matches nothing.
+ */
+export function searchLessons(query: string): Lesson[] {
+  // NFKD turns "I²C" into "I2C", so typing "i2c" finds it.
+  const fold = (t: string) => t.normalize('NFKD').toLowerCase();
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  return lessons.filter((l) => {
+    const text = fold(`${l.title} ${l.summary} ${trackLabel(l.track)}`);
+    return words.every((w) => text.includes(w));
+  });
 }
 
 export function lessonById(id: string): Lesson | undefined {

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'preact/hooks';
 import { ThemeToggle } from './components/ThemeToggle';
 import { useProgress } from './components/useProgress';
-import { lessonById, lessons, nextLesson, tracks, type Lesson, type TrackId } from './lessons';
+import { lessonById, lessons, nextLesson, searchLessons, trackById, trackLabel, tracks, type Lesson, type Track, type TrackId } from './lessons';
 import { getStatus } from './model/device';
 import { HomePage } from './pages/HomePage';
 import { LessonPage } from './pages/LessonPage';
 import { PresetPage } from './pages/PresetPage';
+import { TrackPage } from './pages/TrackPage';
 import { WifiPage } from './pages/WifiPage';
 
 // Hash routing (#/lesson/<id>) keeps this a single static file that works
@@ -23,23 +24,37 @@ function useRoute(): string {
   return hash.replace(/^#/, '') || '/';
 }
 
-// The track to show open: the current lesson's, or on the home page the one the reader continues in. Other
-// pages (Wi-Fi, preset) open none.
-function focusTrack(route: string, lesson: Lesson | undefined, done: Set<string>): TrackId | undefined {
-  if (lesson) return lesson.track;
+// What a route shows: a lesson, a track's landing page, or (neither set) one of the fixed pages.
+interface Page {
+  lesson?: Lesson;
+  track?: Track;
+}
+
+function pageFor(route: string): Page {
+  const m = route.match(/^\/(lesson|track)\/(.+)$/);
+  if (m?.[1] === 'lesson') return { lesson: lessonById(m[2]) };
+  if (m?.[1] === 'track') return { track: trackById(m[2]) };
+  return {};
+}
+
+// The track to show open: the current lesson's or track page's, or on the home page the one the reader
+// continues in. Other pages (Wi-Fi, preset) open none.
+function focusTrack(route: string, page: Page, done: Set<string>): TrackId | undefined {
+  if (page.lesson) return page.lesson.track;
+  if (page.track) return page.track.id;
   return route === '/' ? nextLesson(done)?.track : undefined;
 }
 
-function Nav({ route, open, lesson }: { route: string; open: boolean; lesson: Lesson | undefined }) {
+function Nav({ route, open, page }: { route: string; open: boolean; page: Page }) {
   const [done] = useProgress();
   // Tracks are collapsible. The reader can open and close any of them, and every navigation (a bookmark, a
   // link, the Continue link) opens the track of the page it lands on, so the current lesson is always visible.
   const [expanded, setExpanded] = useState<Set<TrackId>>(() => {
-    const t = focusTrack(route, lesson, done);
+    const t = focusTrack(route, page, done);
     return new Set(t ? [t] : []);
   });
   useEffect(() => {
-    const t = focusTrack(route, lesson, done);
+    const t = focusTrack(route, page, done);
     if (t) setExpanded((prev) => (prev.has(t) ? prev : new Set(prev).add(t)));
     // Only on navigation: marking a lesson done must not open the next track under the reader.
   }, [route]);
@@ -49,6 +64,10 @@ function Nav({ route, open, lesson }: { route: string; open: boolean; lesson: Le
       if (!next.delete(t)) next.add(t);
       return next;
     });
+  // A search replaces the tracks with the matching lessons; landing on a page clears it.
+  const [query, setQuery] = useState('');
+  useEffect(() => setQuery(''), [route]);
+  const results = searchLessons(query);
   const next = done.size > 0 ? nextLesson(done) : undefined;
   const link = (href: string, label: string, lesson?: Lesson) => (
     <a href={`#${href}`} class={route === href ? 'active' : ''} aria-current={route === href ? 'page' : undefined}>
@@ -76,31 +95,62 @@ function Nav({ route, open, lesson }: { route: string; open: boolean; lesson: Le
           {next.title}
         </a>
       )}
-      {tracks.map(({ id, label, short }) => {
-        const members = lessons.filter((l) => l.track === id);
-        const count = members.filter((l) => done.has(l.id)).length;
-        const isOpen = expanded.has(id);
-        return (
-          <div class="nav-track" key={id}>
-            <button
-              type="button"
-              class={isOpen ? 'nav-group open' : 'nav-group'}
-              aria-expanded={isOpen}
-              aria-controls={`nav-${id}`}
-              onClick={() => toggle(id)}
-            >
-              <span class="nav-chevron" aria-hidden="true" />
-              {short ?? label}
-              <span class="nav-count" title={`${count} of ${members.length} marked as done`}>
-                {count}/{members.length}
+      <input
+        type="search"
+        class="nav-search"
+        placeholder="Search lessons"
+        aria-label="Search lessons"
+        value={query}
+        onInput={(e) => setQuery(e.currentTarget.value)}
+        onKeyDown={(e) => e.key === 'Escape' && setQuery('')}
+      />
+      {query.trim() ? (
+        <div class="nav-results" role="region" aria-label="Search results">
+          {results.length === 0 && <p class="nav-empty">No lessons match.</p>}
+          {results.map((l) => (
+            <a key={l.id} href={`#/lesson/${l.id}`}>
+              <span>
+                {l.title}
+                <span class="nav-result-track">{trackLabel(l.track)}</span>
               </span>
-            </button>
-            <div id={`nav-${id}`} class="nav-lessons" hidden={!isOpen}>
-              {members.map((l) => link(`/lesson/${l.id}`, l.title, l))}
-            </div>
-          </div>
-        );
-      })}
+              {done.has(l.id) && (
+                <span class="nav-done" aria-label="done" title="Marked as done">
+                  ✓
+                </span>
+              )}
+            </a>
+          ))}
+        </div>
+      ) : (
+        <>
+          {tracks.map(({ id, label, short }) => {
+            const members = lessons.filter((l) => l.track === id);
+            const count = members.filter((l) => done.has(l.id)).length;
+            const isOpen = expanded.has(id);
+            return (
+              <div class="nav-track" key={id}>
+                <button
+                  type="button"
+                  class={isOpen ? 'nav-group open' : 'nav-group'}
+                  aria-expanded={isOpen}
+                  aria-controls={`nav-${id}`}
+                  onClick={() => toggle(id)}
+                >
+                  <span class="nav-chevron" aria-hidden="true" />
+                  {short ?? label}
+                  <span class="nav-count" title={`${count} of ${members.length} marked as done`}>
+                    {count}/{members.length}
+                  </span>
+                </button>
+                <div id={`nav-${id}`} class="nav-lessons" hidden={!isOpen}>
+                  {link(`/track/${id}`, 'Overview')}
+                  {members.map((l) => link(`/lesson/${l.id}`, l.title, l))}
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
       <div class="nav-group nav-heading">Settings</div>
       {link('/wifi', 'Wi-Fi')}
       {link('/preset', 'Signal preset')}
@@ -159,8 +209,7 @@ export function App() {
   const route = useRoute();
   useHotspotRedirect();
   const [drawerOpen, setDrawerOpen] = useDrawer(route);
-  const match = route.match(/^\/lesson\/(.+)$/);
-  const lesson = match ? lessonById(match[1]) : undefined;
+  const page = pageFor(route);
   return (
     <div class="layout">
       <header class="topbar">
@@ -184,10 +233,12 @@ export function App() {
         </a>
       </header>
       <div class={drawerOpen ? 'backdrop open' : 'backdrop'} onClick={() => setDrawerOpen(false)} />
-      <Nav route={route} open={drawerOpen} lesson={lesson} />
+      <Nav route={route} open={drawerOpen} page={page} />
       <main>
-        {lesson ? (
-          <LessonPage lesson={lesson} />
+        {page.lesson ? (
+          <LessonPage lesson={page.lesson} />
+        ) : page.track ? (
+          <TrackPage track={page.track} />
         ) : route === '/wifi' ? (
           <WifiPage />
         ) : route === '/preset' ? (

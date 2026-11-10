@@ -3,7 +3,7 @@ import { signalName } from '../model/board';
 import { captureWindow, minimumAnalyzer, validateSettings } from '../model/capture';
 import { presetPins } from '../model/presets';
 import { waveLevelAt } from '../model/wave';
-import { lessons, nextLesson, nextUnfinished, tracks } from './index';
+import { lessons, nextLesson, nextUnfinished, searchLessons, tracks } from './index';
 
 describe('lessons', () => {
   it('have unique ids', () => {
@@ -57,6 +57,16 @@ describe('lessons', () => {
     expect(nextLesson(new Set())).toBe(lessons[0]);
     expect(nextLesson(new Set([lessons[0].id, lessons[2].id]))).toBe(lessons[1]);
     expect(nextLesson(new Set(lessons.map((l) => l.id)))).toBeUndefined();
+  });
+
+  it('search titles, summaries and track names, every word, ignoring case', () => {
+    expect(searchLessons('  ')).toEqual([]);
+    expect(searchLessons('UART').map((l) => l.id)).toContain('uart');
+    expect(searchLessons('i2c').map((l) => l.id)).toContain('i2c');
+    expect(searchLessons('decoders garbage').map((l) => l.id)).toEqual(['decoder-garbage']);
+    const faults = lessons.filter((l) => l.track === 'faults');
+    expect(searchLessons('find the bug')).toEqual(expect.arrayContaining(faults));
+    expect(searchLessons('zzzz')).toEqual([]);
   });
 
   it('offer the next unfinished lesson after one, wrapping to earlier ones', () => {
