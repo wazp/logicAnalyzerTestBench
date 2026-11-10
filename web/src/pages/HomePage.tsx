@@ -1,7 +1,8 @@
 import { PinDiagram } from '../components/PinDiagram';
 import { useDeviceStatus } from '../components/useDeviceStatus';
+import { useProgress } from '../components/useProgress';
 import { Zoomable } from '../components/Zoomable';
-import { lessons } from '../lessons';
+import { lessons, nextLesson, trackLabel } from '../lessons';
 import { allSignalGpios, signalColor } from '../model/board';
 import { minimumAnalyzer } from '../model/capture';
 import { faultsGpio } from '../model/faults';
@@ -41,11 +42,20 @@ export function HomePage() {
   const firstProtocol = lessons.find((l) => l.track === 'protocols');
   const [device] = useDeviceStatus();
   const onHotspot = !device.loading && device.status?.mode === 'setup';
+  const [done] = useProgress();
+  // Only once the reader has marked something: before that, "Start with" below is the way in.
+  const next = done.size > 0 ? nextLesson(done) : undefined;
   return (
     <article class="home">
       {onHotspot && (
-        <a class="wifi-banner" href="#/wifi">
+        <a class="home-banner" href="#/wifi">
           <strong>Use the guide from your computer:</strong> connect the test bench to your Wi-Fi →
+        </a>
+      )}
+      {next && (
+        <a class="home-banner" href={`#/lesson/${next.id}`}>
+          <strong>Continue where you left off:</strong> {next.title}{' '}
+          <span class="muted">({trackLabel(next.track)})</span> →
         </a>
       )}
       <header>

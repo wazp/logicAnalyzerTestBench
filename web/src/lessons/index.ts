@@ -2,7 +2,7 @@
 // written out here rather than discovered from the files.
 //
 // To add a lesson: create one file exporting a `Lesson` in concepts/,
-// basics/, protocols/, video/, faults/, verify/ or hardware/ (shared building blocks are in helpers.ts, the shapes
+// basics/, protocols/, decoders/, video/, faults/, verify/ or hardware/ (shared building blocks are in helpers.ts, the shapes
 // in types.ts), then add it to this list. The tests in lessons.test.ts check
 // every lesson listed here.
 
@@ -24,6 +24,9 @@ import { faultsOnewire } from './faults/onewire';
 import { faultsSpi } from './faults/spi';
 import { faultsUart } from './faults/uart';
 import { faultsWs2812 } from './faults/ws2812';
+import { decoderGarbage } from './decoders/decoder-garbage';
+import { decoders } from './decoders/decoders';
+import { sigrokDecoders } from './decoders/sigrok-decoders';
 import { gotchas } from './concepts/gotchas';
 import { numbers } from './concepts/numbers';
 import { timingDiagrams } from './concepts/timing-diagrams';
@@ -41,17 +44,14 @@ import { triggers } from './concepts/triggers';
 import { vocabulary } from './concepts/vocabulary';
 import { voltageLevels } from './concepts/voltage-levels';
 import { atAGlance } from './protocols/at-a-glance';
-import { decoderGarbage } from './protocols/decoder-garbage';
-import { decoders } from './protocols/decoders';
 import { i2c } from './protocols/i2c';
 import { irRemote } from './protocols/ir-remote';
 import { onewire } from './protocols/onewire';
 import { quadrature } from './protocols/quadrature';
-import { sigrokDecoders } from './protocols/sigrok-decoders';
 import { spi } from './protocols/spi';
 import { uart } from './protocols/uart';
 import { ws2812 } from './protocols/ws2812';
-import type { Lesson } from './types';
+import type { Lesson, TrackId } from './types';
 import { clockAccuracy } from './verify/clock-accuracy';
 import { counterCheck } from './verify/counter';
 import { sanityCheck } from './verify/sanity-check';
@@ -60,7 +60,7 @@ import { nesController } from './video/nes';
 import { ps2Keyboard } from './video/ps2';
 import { vgaLesson } from './video/vga';
 
-export type { Check, FactTable, Figure, Lesson, Part, Question, Section, View } from './types';
+export type { Check, FactTable, Figure, Lesson, Part, Question, Section, TrackId, View } from './types';
 
 export const lessons: Lesson[] = [
   // Concepts: how analyzers work, for any analyzer.
@@ -95,9 +95,10 @@ export const lessons: Lesson[] = [
   onewire,
   irRemote,
   quadrature,
+  // Decoders: what they do, using them, and what wrong settings look like. On GP10-GP17.
   decoders,
-  decoderGarbage,
   sigrokDecoders,
+  decoderGarbage,
   // Video and input, on GP10-GP19 with the "Video and input" preset.
   vgaLesson,
   nesController,
@@ -123,6 +124,27 @@ export const lessons: Lesson[] = [
   debugMethod,
   timeYourCode,
 ];
+
+/** The tracks in guide order, with the name the sidebar and lesson pages show. */
+export const tracks: { id: TrackId; label: string }[] = [
+  { id: 'concepts', label: 'Concepts' },
+  { id: 'learn', label: 'Learn' },
+  { id: 'protocols', label: 'Protocols' },
+  { id: 'decoders', label: 'Decoders' },
+  { id: 'video', label: 'Video and input' },
+  { id: 'faults', label: 'Find the bug' },
+  { id: 'verify', label: 'Verify your analyzer' },
+  { id: 'hardware', label: 'On real hardware' },
+];
+
+export function trackLabel(id: TrackId): string {
+  return tracks.find((t) => t.id === id)?.label ?? id;
+}
+
+/** The first lesson in guide order not marked as done: where the reader continues. */
+export function nextLesson(done: Set<string>): Lesson | undefined {
+  return lessons.find((l) => !done.has(l.id));
+}
 
 export function lessonById(id: string): Lesson | undefined {
   return lessons.find((l) => l.id === id);

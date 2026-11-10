@@ -8,7 +8,7 @@ import { ThresholdDiagram } from '../components/ThresholdDiagram';
 import { ViewTabs } from '../components/ViewTabs';
 import { useProgress } from '../components/useProgress';
 import { Zoomable } from '../components/Zoomable';
-import { lessons, type FactTable, type Lesson, type Section } from '../lessons';
+import { lessons, trackLabel, type FactTable, type Lesson, type Section } from '../lessons';
 import { signalColor, signalName } from '../model/board';
 import { defaultPreset, type PresetId } from '../model/presets';
 import { physicalPinForGpio } from '../model/pico';
@@ -128,16 +128,6 @@ function ConceptSection({ section }: { section: Section }) {
   );
 }
 
-const trackLabel: Record<Lesson['track'], string> = {
-  concepts: 'Concepts',
-  learn: 'Learn',
-  protocols: 'Protocols',
-  video: 'Video and input',
-  faults: 'Find the bug',
-  verify: 'Verify your analyzer',
-  hardware: 'On real hardware',
-};
-
 function DoneToggle({ lesson }: { lesson: Lesson }) {
   const [done, mark] = useProgress();
   const isDone = done.has(lesson.id);
@@ -172,7 +162,7 @@ export function LessonPage({ lesson }: { lesson: Lesson }) {
       <MysteryContext.Provider value={mystery}>
         <article class="lesson">
           <header>
-            <div class="eyebrow">{trackLabel[lesson.track]}</div>
+            <div class="eyebrow">{trackLabel(lesson.track)}</div>
             <h1>{lesson.title}</h1>
             <p class="lede">{lesson.summary}</p>
           </header>

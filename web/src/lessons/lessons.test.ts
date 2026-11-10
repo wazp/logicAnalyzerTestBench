@@ -3,7 +3,7 @@ import { signalName } from '../model/board';
 import { captureWindow, minimumAnalyzer, validateSettings } from '../model/capture';
 import { presetPins } from '../model/presets';
 import { waveLevelAt } from '../model/wave';
-import { lessons } from './index';
+import { lessons, nextLesson, tracks } from './index';
 
 describe('lessons', () => {
   it('have unique ids', () => {
@@ -38,6 +38,25 @@ describe('lessons', () => {
 
   it('start with the concepts track', () => {
     expect(lessons.slice(0, 5).map((l) => l.track)).toEqual(Array(5).fill('concepts'));
+  });
+
+  it('keep each track together, in the order of the track list', () => {
+    const order = lessons.map((l) => l.track).filter((t, i, all) => i === 0 || all[i - 1] !== t);
+    expect(order).toEqual(tracks.map((t) => t.id));
+  });
+
+  it('introduce decoders before showing what wrong settings do', () => {
+    expect(lessons.filter((l) => l.track === 'decoders').map((l) => l.id)).toEqual([
+      'decoders',
+      'sigrok-decoders',
+      'decoder-garbage',
+    ]);
+  });
+
+  it('continue at the first lesson not marked as done', () => {
+    expect(nextLesson(new Set())).toBe(lessons[0]);
+    expect(nextLesson(new Set([lessons[0].id, lessons[2].id]))).toBe(lessons[1]);
+    expect(nextLesson(new Set(lessons.map((l) => l.id)))).toBeUndefined();
   });
 
   for (const lesson of lessons) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { useProgress } from './components/useProgress';
-import { lessonById, lessons, type Lesson } from './lessons';
+import { lessonById, lessons, nextLesson, tracks, type Lesson, type TrackId } from './lessons';
 import { getStatus } from './model/device';
 import { HomePage } from './pages/HomePage';
 import { LessonPage } from './pages/LessonPage';
@@ -22,8 +22,31 @@ function useRoute(): string {
   return hash.replace(/^#/, '') || '/';
 }
 
-function Nav({ route, open }: { route: string; open: boolean }) {
+// The track to show open: the current lesson's, or on any other page the one the reader continues in.
+function focusTrack(lesson: Lesson | undefined, done: Set<string>): TrackId | undefined {
+  return (lesson ?? nextLesson(done))?.track;
+}
+
+function Nav({ route, open, lesson }: { route: string; open: boolean; lesson: Lesson | undefined }) {
   const [done] = useProgress();
+  // Tracks are collapsible. The reader can open and close any of them, and every navigation (a bookmark, a
+  // link, the Continue link) opens the track of the page it lands on, so the current lesson is always visible.
+  const [expanded, setExpanded] = useState<Set<TrackId>>(() => {
+    const t = focusTrack(lesson, done);
+    return new Set(t ? [t] : []);
+  });
+  useEffect(() => {
+    const t = focusTrack(lesson, done);
+    if (t) setExpanded((prev) => (prev.has(t) ? prev : new Set(prev).add(t)));
+    // Only on navigation: marking a lesson done must not open the next track under the reader.
+  }, [route]);
+  const toggle = (t: TrackId) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(t)) next.add(t);
+      return next;
+    });
+  const next = done.size > 0 ? nextLesson(done) : undefined;
   const link = (href: string, label: string, lesson?: Lesson) => (
     <a href={`#${href}`} class={route === href ? 'active' : ''} aria-current={route === href ? 'page' : undefined}>
       {label}
@@ -35,8 +58,6 @@ function Nav({ route, open }: { route: string; open: boolean }) {
       )}
     </a>
   );
-  const track = (t: Lesson['track']) =>
-    lessons.filter((l) => l.track === t).map((l) => link(`/lesson/${l.id}`, l.title, l));
   return (
     <nav id="sidebar" class={open ? 'sidebar open' : 'sidebar'}>
       <a class="brand" href="#/">
@@ -46,21 +67,38 @@ function Nav({ route, open }: { route: string; open: boolean }) {
         Test Bench
       </a>
       {link('/', 'Start here')}
-      <div class="nav-group">Concepts</div>
-      {track('concepts')}
-      <div class="nav-group">Learn</div>
-      {track('learn')}
-      <div class="nav-group">Protocols</div>
-      {track('protocols')}
-      <div class="nav-group">Video and input</div>
-      {track('video')}
-      <div class="nav-group">Find the bug</div>
-      {track('faults')}
-      <div class="nav-group">Verify</div>
-      {track('verify')}
-      <div class="nav-group">On real hardware</div>
-      {track('hardware')}
-      <div class="nav-group">Settings</div>
+      {next && (
+        <a class="nav-continue" href={`#/lesson/${next.id}`}>
+          <span class="nav-continue-label">Continue</span>
+          {next.title}
+        </a>
+      )}
+      {tracks.map(({ id, label }) => {
+        const members = lessons.filter((l) => l.track === id);
+        const count = members.filter((l) => done.has(l.id)).length;
+        const isOpen = expanded.has(id);
+        return (
+          <div class="nav-track" key={id}>
+            <button
+              type="button"
+              class={isOpen ? 'nav-group open' : 'nav-group'}
+              aria-expanded={isOpen}
+              aria-controls={`nav-${id}`}
+              onClick={() => toggle(id)}
+            >
+              <span class="nav-chevron" aria-hidden="true" />
+              {label}
+              <span class="nav-count" title={`${count} of ${members.length} marked as done`}>
+                {count}/{members.length}
+              </span>
+            </button>
+            <div id={`nav-${id}`} class="nav-lessons" hidden={!isOpen}>
+              {members.map((l) => link(`/lesson/${l.id}`, l.title, l))}
+            </div>
+          </div>
+        );
+      })}
+      <div class="nav-group nav-heading">Settings</div>
       {link('/wifi', 'Wi-Fi')}
       {link('/preset', 'Signal preset')}
     </nav>
@@ -142,7 +180,7 @@ export function App() {
         </a>
       </header>
       <div class={drawerOpen ? 'backdrop open' : 'backdrop'} onClick={() => setDrawerOpen(false)} />
-      <Nav route={route} open={drawerOpen} />
+      <Nav route={route} open={drawerOpen} lesson={lesson} />
       <main>
         {lesson ? (
           <LessonPage lesson={lesson} />

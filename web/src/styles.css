@@ -190,6 +190,88 @@ main {
   color: var(--muted);
 }
 
+/* Each track is a collapsible group: the heading is a button, the lessons a list it shows or hides. */
+button.nav-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 2px 0 0;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.nav-group:hover,
+button.nav-group.open {
+  color: var(--text);
+}
+
+button.nav-group:hover {
+  background: var(--surface-2);
+}
+
+.nav-chevron {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+button.nav-group.open .nav-chevron {
+  transform: rotate(45deg);
+}
+
+.nav-count {
+  margin-left: auto;
+  font-weight: 600;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.nav-lessons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 6px 10px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border);
+}
+
+.nav-lessons[hidden] {
+  display: none;
+}
+
+.nav-heading {
+  margin-top: 20px;
+}
+
+.sidebar a.nav-continue {
+  display: block;
+  margin: 6px 0 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.nav-continue-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
 /* The top bar, hamburger and backdrop only exist on narrow screens. */
 .topbar,
 .backdrop {
@@ -865,7 +947,7 @@ button.button {
   color: var(--surface);
 }
 
-.wifi-banner {
+.home-banner {
   display: block;
   margin-bottom: 1.5rem;
   padding: 12px 16px;

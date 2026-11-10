@@ -63,9 +63,12 @@ export interface Section {
   code?: string;
 }
 
+/** The guide's tracks, in order; `tracks` in index.ts gives their names. */
+export type TrackId = 'concepts' | 'learn' | 'protocols' | 'decoders' | 'video' | 'faults' | 'verify' | 'hardware';
+
 export interface Lesson {
   id: string;
-  track: 'concepts' | 'learn' | 'protocols' | 'video' | 'faults' | 'verify' | 'hardware';
+  track: TrackId;
   /** The signal preset GP10-GP22 must play. Omitted: the default, protocols. */
   preset?: PresetId;
   /** Finding out what the pins carry is the exercise: the page hides their names, and parts show no waveforms. */
