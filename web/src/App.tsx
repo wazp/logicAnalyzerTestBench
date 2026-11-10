@@ -23,9 +23,11 @@ function useRoute(): string {
   return hash.replace(/^#/, '') || '/';
 }
 
-// The track to show open: the current lesson's, or on any other page the one the reader continues in.
-function focusTrack(lesson: Lesson | undefined, done: Set<string>): TrackId | undefined {
-  return (lesson ?? nextLesson(done))?.track;
+// The track to show open: the current lesson's, or on the home page the one the reader continues in. Other
+// pages (Wi-Fi, preset) open none.
+function focusTrack(route: string, lesson: Lesson | undefined, done: Set<string>): TrackId | undefined {
+  if (lesson) return lesson.track;
+  return route === '/' ? nextLesson(done)?.track : undefined;
 }
 
 function Nav({ route, open, lesson }: { route: string; open: boolean; lesson: Lesson | undefined }) {
@@ -33,11 +35,11 @@ function Nav({ route, open, lesson }: { route: string; open: boolean; lesson: Le
   // Tracks are collapsible. The reader can open and close any of them, and every navigation (a bookmark, a
   // link, the Continue link) opens the track of the page it lands on, so the current lesson is always visible.
   const [expanded, setExpanded] = useState<Set<TrackId>>(() => {
-    const t = focusTrack(lesson, done);
+    const t = focusTrack(route, lesson, done);
     return new Set(t ? [t] : []);
   });
   useEffect(() => {
-    const t = focusTrack(lesson, done);
+    const t = focusTrack(route, lesson, done);
     if (t) setExpanded((prev) => (prev.has(t) ? prev : new Set(prev).add(t)));
     // Only on navigation: marking a lesson done must not open the next track under the reader.
   }, [route]);
