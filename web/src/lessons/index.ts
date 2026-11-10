@@ -146,6 +146,16 @@ export function nextLesson(done: Set<string>): Lesson | undefined {
   return lessons.find((l) => !done.has(l.id));
 }
 
+/**
+ * Where to go after finishing `from`: the next lesson after it not marked as done, else the first unfinished
+ * one before it. Undefined once every other lesson is done.
+ */
+export function nextUnfinished(from: Lesson, done: Set<string>): Lesson | undefined {
+  const i = lessons.indexOf(from);
+  const open = (l: Lesson) => l !== from && !done.has(l.id);
+  return lessons.slice(i + 1).find(open) ?? lessons.slice(0, i).find(open);
+}
+
 export function lessonById(id: string): Lesson | undefined {
   return lessons.find((l) => l.id === id);
 }

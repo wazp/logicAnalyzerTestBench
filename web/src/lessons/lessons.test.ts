@@ -3,7 +3,7 @@ import { signalName } from '../model/board';
 import { captureWindow, minimumAnalyzer, validateSettings } from '../model/capture';
 import { presetPins } from '../model/presets';
 import { waveLevelAt } from '../model/wave';
-import { lessons, nextLesson, tracks } from './index';
+import { lessons, nextLesson, nextUnfinished, tracks } from './index';
 
 describe('lessons', () => {
   it('have unique ids', () => {
@@ -57,6 +57,16 @@ describe('lessons', () => {
     expect(nextLesson(new Set())).toBe(lessons[0]);
     expect(nextLesson(new Set([lessons[0].id, lessons[2].id]))).toBe(lessons[1]);
     expect(nextLesson(new Set(lessons.map((l) => l.id)))).toBeUndefined();
+  });
+
+  it('offer the next unfinished lesson after one, wrapping to earlier ones', () => {
+    const [a, b, c] = lessons;
+    const last = lessons[lessons.length - 1];
+    expect(nextUnfinished(a, new Set([a.id]))).toBe(b);
+    expect(nextUnfinished(a, new Set([a.id, b.id]))).toBe(c);
+    const allButB = new Set(lessons.filter((l) => l !== b).map((l) => l.id));
+    expect(nextUnfinished(last, allButB)).toBe(b);
+    expect(nextUnfinished(a, new Set(lessons.map((l) => l.id)))).toBeUndefined();
   });
 
   for (const lesson of lessons) {

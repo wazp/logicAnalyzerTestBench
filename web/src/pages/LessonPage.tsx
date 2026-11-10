@@ -8,7 +8,7 @@ import { ThresholdDiagram } from '../components/ThresholdDiagram';
 import { ViewTabs } from '../components/ViewTabs';
 import { useProgress } from '../components/useProgress';
 import { Zoomable } from '../components/Zoomable';
-import { lessons, trackLabel, type FactTable, type Lesson, type Section } from '../lessons';
+import { lessons, nextUnfinished, trackLabel, type FactTable, type Lesson, type Section } from '../lessons';
 import { signalColor, signalName } from '../model/board';
 import { defaultPreset, type PresetId } from '../model/presets';
 import { physicalPinForGpio } from '../model/pico';
@@ -131,11 +131,18 @@ function ConceptSection({ section }: { section: Section }) {
 function DoneToggle({ lesson }: { lesson: Lesson }) {
   const [done, mark] = useProgress();
   const isDone = done.has(lesson.id);
+  const next = isDone ? nextUnfinished(lesson, done) : undefined;
   return (
     <div class="done-toggle">
       <button type="button" class={isDone ? 'button secondary' : 'button'} aria-pressed={isDone} onClick={() => mark(lesson.id, !isDone)}>
         {isDone ? '✓ Done' : 'Mark as done'}
       </button>
+      {/* No automatic jump: readers often mark a lesson and stay to look back at it. */}
+      {next && (
+        <a class="button" href={`#/lesson/${next.id}`}>
+          Next: {next.title} →
+        </a>
+      )}
       <span class="muted small">Saved in this browser only.</span>
     </div>
   );
