@@ -47,9 +47,12 @@ TITLES = {'protocols': 'Protocols', 'video': 'Video and input', 'faults': 'Fault
 TIMELINE = list(range(10, 23))
 BASIC = list(range(0, 10)) + [26]
 
-# Found by trial on a PCB 6.0 analyzer: a capture over these limits hangs
-# instead of failing. A channel above 7 switches it to its 24-channel mode,
-# and the pre-trigger part may be about a tenth of the buffer at most.
+# A capture over these limits hangs instead of failing. The 6.5 firmware for
+# the Pico 2 W has a 384 KB buffer, and the highest channel used picks the
+# sample size: 1 byte up to channel 7 (393,216 samples), 2 bytes up to 15
+# (196,608), 4 bytes above (98,304). The pre-trigger part may be a tenth of
+# that at most. The limits below keep a margin under each; the 24-channel one
+# was found by trial on a PCB 6.0 analyzer.
 # Rates are whole fractions of 100 MHz: others come from a fractional clock
 # divider and run a few hundred ppm off (24 MS/s measured -309 ppm).
 MAX_RATE = 100_000_000
@@ -61,7 +64,8 @@ LIVENESS_GPIO = 5
 
 
 def max_samples(channels):
-    return 390_000 if max(channels) < 8 else 90_000
+    top = max(channels)
+    return 390_000 if top < 8 else 195_000 if top < 16 else 90_000
 
 
 def max_pre(channels):
