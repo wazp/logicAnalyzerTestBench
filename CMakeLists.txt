@@ -161,6 +161,6 @@ pico_enable_stdio_uart(logic_test_bench 0)
 
 pico_set_program_name(logic_test_bench "logic_test_bench")
 pico_set_program_description(logic_test_bench "Programmable digital test signal generator for logic analyzers")
-pico_set_program_version(logic_test_bench "0.6.1")
+pico_set_program_version(logic_test_bench "0.7.0")
 
 pico_add_extra_outputs(logic_test_bench)
