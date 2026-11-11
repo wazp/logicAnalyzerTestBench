@@ -60,11 +60,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ARM's own release (cached by the action) rather than apt: the Ubuntu mirrors were unreachable from the
+      # runners for hours on 2026-11-11. 13.2.Rel1 is the version apt shipped. cmake and ninja come with the image.
       - name: Install the ARM toolchain
+        uses: carlosperate/arm-none-eabi-gcc-action@v1
+        with:
+          release: '13.2.Rel1'
+
+      - name: Tool versions
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends cmake ninja-build gcc-arm-none-eabi \
-            libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+          arm-none-eabi-gcc --version | head -1
+          cmake --version | head -1
+          ninja --version
 
       - uses: actions/setup-node@v4
         with:
