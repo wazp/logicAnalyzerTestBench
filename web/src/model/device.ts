@@ -5,7 +5,7 @@
 import { defaultPreset, isPresetId, type PresetId } from './presets';
 
 export type WifiMode = 'setup' | 'joining' | 'joined' | 'off';
-export type JoinError = '' | 'wrong_password' | 'not_found' | 'timeout' | 'failed';
+export type JoinError = '' | 'wrong_password' | 'not_found' | 'timeout' | 'failed' | 'no_address';
 export type SaveError = 'ssid_required' | 'ssid_too_long' | 'password_too_short' | 'password_too_long';
 
 export interface DeviceStatus {
@@ -142,9 +142,11 @@ export function joinErrorText(status: Pick<DeviceStatus, 'ssid' | 'last_error'>)
     case 'wrong_password':
       return `Couldn't join ${net}: wrong password.`;
     case 'not_found':
-      return `Couldn't join ${net}: network not found. Check the name and that it is in range.`;
+      return `Couldn't join ${net}: network not found. Check the name, that it is in range, and that it offers 2.4 GHz: the test bench can't use 5 GHz.`;
     case 'timeout':
-      return `Couldn't join ${net}: it took too long. The network may be out of range.`;
+      return `Couldn't join ${net}: no answer in time. The network may be out of range, or use a login with a user name, which the test bench can't do.`;
+    case 'no_address':
+      return `Joined ${net}, but it gave the test bench no IP address. Networks at work or school often only serve registered devices: ask whoever runs it, or try a guest network.`;
     case 'failed':
       return `Couldn't join ${net}.`;
   }

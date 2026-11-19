@@ -55,7 +55,7 @@ void print_status() {
 }
 
 void print_wifi() {
-    char line[192];
+    char line[256];
     wifi_status_line(line, sizeof(line));
     printf("%s\n", line);
 }

@@ -279,7 +279,7 @@ export function WifiPage() {
           <p class="muted small">
             If that name does not open, the address is printed on the serial console (command <code>w</code>) and is
             listed as <strong>{saved.hostname}</strong> in your router. If the test bench can't join, its own{' '}
-            <strong>{status.ap_ssid}</strong> hotspot comes back within half a minute and shows what went wrong.
+            <strong>{status.ap_ssid}</strong> hotspot comes back within a minute and shows what went wrong.
           </p>
         </section>
       </article>

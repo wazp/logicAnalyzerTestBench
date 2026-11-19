@@ -19,8 +19,12 @@ extern "C" {
 
 namespace {
 
-// How long a join may take before we give up and start the setup hotspot.
+// How long one join attempt may take.
 constexpr uint32_t kJoinTimeoutMs = 20000;
+// Failed attempts are retried until this long after the first one, then the
+// setup hotspot starts. A busy office network refused or stalled about one
+// join in ten that worked on the next try (measured on 0.7.0).
+constexpr uint32_t kJoinGiveUpMs = 45000;
 // After the link drops, how long before we ask the radio to join again.
 constexpr uint32_t kRejoinIntervalMs = 15000;
 // Time for the HTTP response to reach the browser before a reboot.
@@ -33,6 +37,7 @@ char hostname[24];
 char ap_ssid[24];
 
 absolute_time_t join_deadline;
+absolute_time_t join_give_up;
 bool mdns_running = false;
 bool setup_services_running = false;
 dhcp_server_t dhcp_server;
@@ -89,8 +94,22 @@ void start_join() {
     }
     mode = WifiMode::kJoining;
     led(false);
+    join_give_up = make_timeout_time_ms(kJoinGiveUpMs);
     join_deadline = make_timeout_time_ms(kJoinTimeoutMs);
     printf("Wi-Fi: joining \"%s\"\n", saved.ssid);
+}
+
+// Another attempt if there is time left before kJoinGiveUpMs; false if not.
+bool retry_join(JoinError error) {
+    if (time_reached(join_give_up)) {
+        return false;
+    }
+    printf("Wi-Fi: could not join \"%s\" (%s), trying again\n", saved.ssid, wifi_error_text(error));
+    cyw43_wifi_leave(&cyw43_state, CYW43_ITF_STA);
+    cyw43_arch_wifi_connect_async(saved.ssid, saved.password[0] ? saved.password : nullptr, auth_for(saved.password));
+    const absolute_time_t attempt_end = make_timeout_time_ms(kJoinTimeoutMs);
+    join_deadline = absolute_time_diff_us(attempt_end, join_give_up) < 0 ? join_give_up : attempt_end;
+    return true;
 }
 
 void on_joined() {
@@ -106,14 +125,17 @@ void on_joined() {
         cyw43_arch_lwip_end();
         mdns_running = true;
     }
-    char line[160];
+    char line[256];
     wifi_status_line(line, sizeof(line));
     printf("%s\n", line);
 }
 
 void on_join_failed(JoinError error) {
+    if (retry_join(error)) {
+        return;
+    }
     last_error = error;
-    printf("Wi-Fi: could not join \"%s\" (%s), starting the setup hotspot\n", saved.ssid, wifi_error_code(error));
+    printf("Wi-Fi: could not join \"%s\" (%s), starting the setup hotspot\n", saved.ssid, wifi_error_text(error));
     cyw43_arch_disable_sta_mode();
     start_setup();
 }
@@ -243,7 +265,9 @@ void wifi_poll() {
                                               auth_for(saved.password));
                 join_deadline = make_timeout_time_ms(kJoinTimeoutMs);
             } else {
-                on_join_failed(JoinError::kTimeout);
+                // NOIP means the access point accepted us and only DHCP is
+                // missing, which points at the network rather than the radio.
+                on_join_failed(link == CYW43_LINK_NOIP ? JoinError::kNoAddress : JoinError::kTimeout);
             }
         }
     } else if (mode == WifiMode::kJoined && link != CYW43_LINK_UP) {
@@ -285,6 +309,19 @@ const char* wifi_error_code(JoinError e) {
         case JoinError::kNotFound: return "not_found";
         case JoinError::kTimeout: return "timeout";
         case JoinError::kFailed: return "failed";
+        case JoinError::kNoAddress: return "no_address";
+    }
+    return "failed";
+}
+
+const char* wifi_error_text(JoinError e) {
+    switch (e) {
+        case JoinError::kNone: return "";
+        case JoinError::kWrongPassword: return "wrong password";
+        case JoinError::kNotFound: return "network not found";
+        case JoinError::kTimeout: return "no answer in time";
+        case JoinError::kFailed: return "the radio refused";
+        case JoinError::kNoAddress: return "joined, but the network gave no IP address";
     }
     return "failed";
 }
@@ -303,10 +340,13 @@ void wifi_status_line(char* out, size_t size) {
             snprintf(out, size, "Wi-Fi off (radio did not start)");
             break;
         case WifiMode::kSetup:
-            snprintf(out, size, "Wi-Fi setup hotspot \"%s\", password \"%s\", guide at http://%s/%s%s%s%s", info.ap_ssid,
-                     wifi_config::kPassword, info.ip, info.last_error != JoinError::kNone ? " (could not join \"" : "",
-                     info.last_error != JoinError::kNone ? info.ssid : "",
-                     info.last_error != JoinError::kNone ? "\")" : "", debug);
+        {
+            const bool failed = info.last_error != JoinError::kNone;
+            snprintf(out, size, "Wi-Fi setup hotspot \"%s\", password \"%s\", guide at http://%s/%s%s%s%s%s%s",
+                     info.ap_ssid, wifi_config::kPassword, info.ip, failed ? " (could not join \"" : "",
+                     failed ? info.ssid : "", failed ? "\": " : "", wifi_error_text(info.last_error),
+                     failed ? ")" : "", debug);
+        }
             break;
         case WifiMode::kJoining:
             snprintf(out, size, "Wi-Fi joining \"%s\"...%s", info.ssid, debug);
@@ -315,6 +355,13 @@ void wifi_status_line(char* out, size_t size) {
             snprintf(out, size, "Wi-Fi joined \"%s\", guide at http://%s/ and http://%s.local/%s", info.ssid, info.ip,
                      info.hostname, debug);
             break;
+    }
+    // Networks that only serve registered devices ask for this address.
+    uint8_t mac[6];
+    if (info.mode != WifiMode::kOff && cyw43_wifi_get_mac(&cyw43_state, CYW43_ITF_STA, mac) == 0) {
+        const size_t used = strlen(out);
+        snprintf(out + used, size - used, ", MAC %02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3],
+                 mac[4], mac[5]);
     }
 }
 
