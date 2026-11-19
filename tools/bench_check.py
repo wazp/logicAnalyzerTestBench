@@ -12,7 +12,8 @@ clock difference between analyzer and board:
   - every sample that is not right next to an expected edge has the expected level;
   - every edge with room around it lands within one sample (plus input skew) of its expected time;
   - every frame window (one transaction, fault or burst) that fits in the capture has exactly the
-    expected number of edges on each pin, when its shortest pulse is at least one sample long.
+    expected number of edges on each pin, when its shortest pulse spans at least two samples
+    (a pulse only one sample long can fall between samples).
 
 Developer tooling for the analyzer the maintainer owns; the guide itself stays analyzer neutral.
 Needs pyserial, the host build (build-tests/export_frame) and TerminalCapture.
@@ -483,8 +484,10 @@ def compare(group, cap):
             if len(inside) != len(exp):
                 ok = False  # Another transaction's edges sit in the margin.
                 break
-            if any(b2 - a2 < dt for a2, b2 in zip(exp, exp[1:])):
-                ok = False  # A pulse shorter than a sample may be missed: not countable at this rate.
+            if any(b2 - a2 < 2 * dt for a2, b2 in zip(exp, exp[1:])):
+                # A pulse under two samples may be missed: not countable at this rate.
+                # The Verify bursts' 40 ns pulses at 25 MS/s counted 2 edges instead of 32 now and then.
+                ok = False
                 break
             i0 = int((a + b * (start - margin)) / dt) + 1
             i1 = int((a + b * (end + margin)) / dt)
