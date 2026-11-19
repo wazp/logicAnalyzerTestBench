@@ -18,7 +18,10 @@
 #include "core/settings.h"
 
 enum class WifiMode { kOff, kSetup, kJoining, kJoined };
-enum class JoinError { kNone, kWrongPassword, kNotFound, kTimeout, kFailed };
+// kNoAddress: joined the access point, but no DHCP lease before the deadline
+// (often a network that only serves registered devices). kTimeout: still not
+// joined at the deadline.
+enum class JoinError { kNone, kWrongPassword, kNotFound, kTimeout, kFailed, kNoAddress };
 
 struct WifiInfo {
     WifiMode mode = WifiMode::kOff;
@@ -39,6 +42,7 @@ void wifi_poll();
 void wifi_info(WifiInfo& out);
 const char* wifi_mode_code(WifiMode mode);       // "setup", "joining", "joined", "off"
 const char* wifi_error_code(JoinError error);    // "", "wrong_password", ...
+const char* wifi_error_text(JoinError error);    // "", "wrong password", ... for the console
 void wifi_status_line(char* out, size_t size);  // One line for the serial console.
 
 // --- Requests from the web server (safe in lwIP context) -------------------

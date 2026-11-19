@@ -218,7 +218,16 @@ To read the guide on the computer that runs the analyzer app, without losing tha
 
 From then on the test bench joins that network at every boot and its own hotspot stays off. If the `.local` name does not open (some older Windows and Android versions do not support it), use the IP address instead: press `w` on the serial console, or look for `testbench-xxxx` in your router's list of devices.
 
-If the network can't be joined at boot (wrong password, out of range, router off), the `TestBench-XXXX` hotspot comes back after about 20 seconds and the Wi-Fi page says what went wrong. If the link drops later, the test bench keeps trying to rejoin.
+If the network can't be joined at boot (wrong password, out of range, router off), the `TestBench-XXXX` hotspot comes back within about 45 seconds (it tries again in between, since busy networks sometimes refuse one attempt) and the Wi-Fi page says what went wrong. The `w` command on the serial console says the same. If the link drops later, the test bench keeps trying to rejoin.
+
+Networks the test bench can't join:
+
+- **5 GHz only.** The Pico 2 W's radio is 2.4 GHz. Most routers offer both bands under one name, which works.
+- **A login with a user name** (WPA2/WPA3 Enterprise, common at work and school). Only networks with a single password, or none, work.
+- **A network that only serves registered devices.** The test bench joins but gets no IP address, and the Wi-Fi page says so. Ask whoever runs the network to register it (the console's `w` command prints its MAC address), or use a guest network.
+- **A guest network with a sign-in page** in the browser. The test bench can't click through it.
+
+At work or school, even a joined test bench may be unreachable: such networks often keep devices from talking to each other, and `.local` names often don't work there. Use the IP address from the console instead.
 
 To forget the network and go back to the hotspot, use any of these:
 
@@ -345,7 +354,7 @@ When the terminal connects, the board prints a banner with the Wi-Fi details, th
 | Key | Action |
 |---|---|
 | `s` | Print the status table |
-| `w` | Print the Wi-Fi status: hotspot or joined network, IP address and guide address |
+| `w` | Print the Wi-Fi status: hotspot or joined network, IP address, guide address, why the last join failed, and the MAC address |
 | `p` | List the signal presets, then press a preset's number to switch to it (the board restarts) |
 | `f` | Forget the saved Wi-Fi network (asks for `y` to confirm) and restart into the hotspot |
 | `h` | Print help |

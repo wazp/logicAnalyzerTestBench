@@ -1,7 +1,7 @@
 // Dev server only: a stand-in for the firmware's JSON API
 // (src/net/http_server.h), so the Wi-Fi page can be worked on without a board.
 // Not part of the build. Start in a different state with
-//   MOCK_MODE=joined npm run dev      (setup | joined | error | none)
+//   MOCK_MODE=joined npm run dev      (setup | joined | error | no_address | none)
 //   MOCK_PRESET=video npm run dev     (protocols | video | faults | verify)
 // "none" answers 404, like a static host. Switching the preset "restarts":
 // the status API stops answering for two seconds.
@@ -27,7 +27,7 @@ export function mockDevice(): Plugin {
     ip: mode === 'joined' ? '192.168.1.57' : '4.3.2.1',
     hostname: 'testbench-f8cd',
     ap_ssid: 'TestBench-F8CD',
-    last_error: mode === 'error' ? 'wrong_password' : '',
+    last_error: mode === 'error' ? 'wrong_password' : mode === 'no_address' ? 'no_address' : '',
     version: '0.5.0-dev',
     preset,
   });

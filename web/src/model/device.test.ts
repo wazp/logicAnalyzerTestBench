@@ -93,6 +93,8 @@ describe('wording and signal', () => {
     expect(joinErrorText(status)).toBe("Couldn't join RogueTwo: wrong password.");
     expect(joinErrorText({ ...status, last_error: '' })).toBeNull();
     expect(joinErrorText({ ssid: '', last_error: 'timeout' })).toContain('the network');
+    // Joined but no DHCP lease: the advice is about the network, not the password or range.
+    expect(joinErrorText({ ...status, last_error: 'no_address' })).toContain('no IP address');
   });
 
   it('turns dBm into bars', () => {
